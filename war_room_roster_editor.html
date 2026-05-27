@@ -1,0 +1,3034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>War Room Roster Editor</title>
+<style>
+  :root {
+    --bg: #0d0f12;
+    --bg2: #13161b;
+    --bg3: #1a1e25;
+    --bg4: #222730;
+    --border: #2a2f3a;
+    --border2: #363c4a;
+    --text: #e8eaf0;
+    --text2: #8b91a0;
+    --text3: #555c6e;
+    --accent: #4f8ef7;
+    --accent-dim: #1e3460;
+    --green: #3ecf8e;
+    --green-dim: #0d3325;
+    --amber: #f5a623;
+    --amber-dim: #3d2800;
+    --red: #f25555;
+    --red-dim: #3d1212;
+    --elite: #c8f56a;
+    --elite-dim: #1e3208;
+    --purple: #b87fff;
+    --purple-dim: #2a1a4a;
+    --teal: #4fd1c5;
+    --teal-dim: #0d2e2b;
+    --header-h: 52px;
+    --toolbar-h: 48px;
+    --row-h: 30px;
+    --col-name: 160px;
+    --col-team: 46px;
+    --col-pos: 44px;
+    --col-ovr: 46px;
+    --col-personality: 130px;
+    --col-num: 54px;
+    --col-attr: 50px;
+    --font: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    --panel-w: 320px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 12px;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  #header {
+    height: var(--header-h);
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  #header h1 {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  #header h1 span { color: var(--accent); }
+  #file-status { font-size: 11px; color: var(--text3); flex: 1; }
+  .hbtn {
+    background: var(--bg4);
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    padding: 6px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 11px;
+    font-family: var(--font);
+    letter-spacing: 0.05em;
+    transition: all 0.12s;
+    white-space: nowrap;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .hbtn:hover { background: var(--bg3); color: var(--text); border-color: var(--accent); }
+  .hbtn.primary { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .hbtn.primary:hover { background: var(--accent); color: #fff; }
+  .hbtn.success { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+  #unsaved-dot { width:7px; height:7px; border-radius:50%; background:var(--amber); display:none; }
+
+  /* ── TOOLBAR ── */
+  #toolbar {
+    height: var(--toolbar-h);
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 8px;
+    flex-shrink: 0;
+    overflow-x: auto;
+  }
+  #toolbar input[type=text],
+  #toolbar select {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    padding: 5px 8px;
+    border-radius: 4px;
+    font-family: var(--font);
+    font-size: 11px;
+    outline: none;
+    transition: border-color 0.1s;
+  }
+  #toolbar input[type=text] { width: 180px; }
+  #toolbar input[type=text]:focus,
+  #toolbar select:focus { border-color: var(--accent); }
+  #toolbar select { min-width: 80px; }
+  #player-count { font-size: 11px; color: var(--text3); margin-left: 4px; white-space: nowrap; }
+  .tb-sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; margin: 0 4px; }
+
+  /* ── LAYOUT ── */
+  #main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── GRID ── */
+  #grid-wrap {
+    flex: 1;
+    overflow: auto;
+    position: relative;
+  }
+  table {
+    border-collapse: collapse;
+    min-width: 100%;
+    table-layout: fixed;
+  }
+  thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  th {
+    background: var(--bg2);
+    border-bottom: 2px solid var(--border2);
+    border-right: 1px solid var(--border);
+    padding: 0 6px;
+    height: 28px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    transition: color 0.1s;
+  }
+  th:hover { color: var(--text2); }
+  th.sort-asc::after  { content: ' ▲'; color: var(--accent); font-size: 9px; }
+  th.sort-desc::after { content: ' ▼'; color: var(--accent); font-size: 9px; }
+  th.sort-active { color: var(--accent); }
+
+  td {
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    padding: 0 6px;
+    height: var(--row-h);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+  }
+  tr { cursor: pointer; transition: background 0.06s; }
+  tr:hover td { background: var(--bg3); }
+  tr.selected td { background: var(--accent-dim) !important; }
+  tr.selected td { border-bottom-color: #2a4070; }
+
+  /* Column widths */
+  .c-idx   { width: 36px; color: var(--text3); font-size: 10px; text-align: right; }
+  .c-name  { width: var(--col-name); font-weight: 600; color: var(--text); }
+  .c-team  { width: var(--col-team); text-align: center; }
+  .c-pos   { width: var(--col-pos); text-align: center; }
+  .c-ovr   { width: var(--col-ovr); text-align: center; font-weight: 700; }
+  .c-pot   { width: 46px; text-align: center; font-weight: 700; }
+  .c-per   { width: var(--col-personality); font-size: 10px; }
+  .c-age   { width: 40px; text-align: center; color: var(--text2); }
+  .c-ht    { width: 40px; text-align: center; color: var(--text2); }
+  .c-wt    { width: 44px; text-align: center; color: var(--text2); }
+  .c-exp   { width: 36px; text-align: center; color: var(--text2); }
+  .c-dev   { width: 58px; font-size: 10px; }
+  .c-attr  { width: var(--col-attr); text-align: center; color: var(--text2); }
+
+  /* Inline-editable cell values */
+  .cell-editable {
+    display: inline-block;
+    min-width: 24px;
+    text-align: center;
+    border-radius: 3px;
+    padding: 1px 3px;
+    cursor: text;
+    transition: background 0.1s;
+  }
+  .cell-editable:hover { background: var(--bg4); }
+
+  /* Attribute chips in grid */
+  .chip {
+    display: inline-block;
+    width: 34px;
+    text-align: center;
+    padding: 1px 0;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .chip-elite { background: var(--elite-dim); color: var(--elite); }
+  .chip-good  { background: #0d2d4a; color: #5bc4f5; }
+  .chip-avg   { background: var(--amber-dim); color: var(--amber); }
+  .chip-poor  { background: var(--red-dim); color: var(--red); }
+  .chip-none  { background: transparent; color: var(--text3); font-size: 10px; }
+  .chip-ovr   { width: 38px; font-size: 12px; }
+  .chip-input {
+    width: 38px;
+    background: var(--bg);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    border-radius: 3px;
+    padding: 1px 2px;
+    outline: none;
+    -moz-appearance: textfield;
+  }
+  .chip-input::-webkit-outer-spin-button,
+  .chip-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+  /* Group header row */
+  .group-header th {
+    background: var(--bg3) !important;
+    border-bottom: 1px solid var(--border) !important;
+    border-top: 1px solid var(--border) !important;
+    height: 18px !important;
+    padding: 0 6px !important;
+    font-size: 9px !important;
+    letter-spacing: 0.12em !important;
+    color: var(--text3) !important;
+    font-weight: 600 !important;
+    cursor: default !important;
+    text-transform: uppercase;
+  }
+  .group-header th:hover { color: var(--text3) !important; }
+
+  /* OVR color tiers */
+  .ovr-elite   { color: var(--elite); }
+  .ovr-probowl { color: var(--green); }
+  .ovr-starter { color: var(--accent); }
+  .ovr-solid   { color: var(--amber); }
+  .ovr-backup  { color: var(--text2); }
+  .ovr-depth   { color: var(--text3); }
+
+  /* Dev trait badges */
+  .dev-badge {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  .dev-XFactor   { background: var(--elite-dim);  color: var(--elite); }
+  .dev-Superstar { background: var(--purple-dim); color: var(--purple); }
+  .dev-Normal    { background: var(--bg4);        color: var(--text3); }
+  .dev-Declining { background: var(--red-dim);    color: var(--red); }
+
+  /* Personality label badges */
+  .per-badge {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+  }
+  .per-positive  { background: var(--green-dim);  color: var(--green); }
+  .per-neutral   { background: var(--bg4);        color: var(--text2); }
+  .per-edge      { background: var(--teal-dim);   color: var(--teal); }
+  .per-problem   { background: var(--red-dim);    color: var(--red); }
+  .per-none      { color: var(--text3); font-style: italic; }
+
+  /* ── DETAIL PANEL ── */
+  #panel {
+    width: var(--panel-w);
+    background: var(--bg2);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+    transition: width 0.15s;
+  }
+  #panel.collapsed { width: 0; border-left: none; }
+  #panel-header {
+    padding: 12px 14px 10px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  #panel-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+    margin-bottom: 2px;
+  }
+  #panel-meta {
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 0.06em;
+  }
+  #panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 14px 20px;
+  }
+  #panel-body::-webkit-scrollbar { width: 4px; }
+  #panel-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .panel-section {
+    margin-bottom: 14px;
+  }
+  .panel-section-title {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .section-icon { font-size: 11px; }
+  .panel-field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    gap: 8px;
+  }
+  .panel-field label {
+    font-size: 10px;
+    color: var(--text2);
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: 90px;
+  }
+  .panel-field input[type=number],
+  .panel-field input[type=text],
+  .panel-field select {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    padding: 4px 7px;
+    border-radius: 4px;
+    font-family: var(--font);
+    font-size: 11px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.1s;
+  }
+  .panel-field input:focus,
+  .panel-field select:focus { border-color: var(--accent); }
+  .panel-field input[readonly] { color: var(--text3); cursor: default; }
+
+  /* Sliders for hidden personality */
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 7px;
+  }
+  .slider-row label {
+    font-size: 10px;
+    color: var(--text2);
+    white-space: nowrap;
+    min-width: 100px;
+    flex-shrink: 0;
+  }
+  .slider-row input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--border2);
+    outline: none;
+    cursor: pointer;
+  }
+  .slider-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--bg2);
+  }
+  .slider-row input[type=range].slider-high::-webkit-slider-thumb { background: var(--green); }
+  .slider-row input[type=range].slider-low::-webkit-slider-thumb  { background: var(--red); }
+  .slider-val {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text);
+    width: 22px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* Personality clear btn */
+  .per-clear-btn {
+    background: none;
+    border: 1px solid var(--border2);
+    color: var(--text3);
+    font-size: 10px;
+    font-family: var(--font);
+    padding: 3px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.1s;
+    white-space: nowrap;
+  }
+  .per-clear-btn:hover { border-color: var(--red); color: var(--red); }
+
+  /* attr grid */
+  .attr-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px 10px;
+  }
+  .attr-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+  }
+  .attr-item label {
+    font-size: 10px;
+    color: var(--text2);
+    white-space: nowrap;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 1;
+  }
+  .attr-item input {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    padding: 3px 5px;
+    border-radius: 3px;
+    font-family: var(--font);
+    font-size: 11px;
+    width: 46px;
+    text-align: center;
+    outline: none;
+    flex-shrink: 0;
+  }
+  .attr-item input:focus { border-color: var(--accent); }
+
+  /* Save button */
+  #panel-footer {
+    padding: 10px 14px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  #save-btn {
+    flex: 1;
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    transition: all 0.12s;
+  }
+  #save-btn:hover { background: var(--accent); color: #fff; }
+  #discard-btn {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    color: var(--text3);
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 11px;
+    transition: all 0.12s;
+  }
+  #discard-btn:hover { border-color: var(--red); color: var(--red); }
+
+  /* Attributes section note */
+  .attr-note {
+    font-size: 9px;
+    color: var(--text3);
+    margin-bottom: 8px;
+    font-style: italic;
+  }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--bg3);
+    border: 1px solid var(--green);
+    color: var(--green);
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: var(--font);
+    z-index: 999;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.2s;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+  #toast.error { border-color: var(--red); color: var(--red); }
+
+  /* Empty state */
+  #panel-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 8px;
+    color: var(--text3);
+    font-size: 11px;
+    text-align: center;
+    padding: 20px;
+  }
+  #panel-empty .icon { font-size: 32px; opacity: 0.3; margin-bottom: 4px; }
+
+  /* Scrollbar */
+  #grid-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+  #grid-wrap::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* no-data row */
+  .no-data td { text-align: center; color: var(--text3); font-size: 11px; padding: 24px; }
+
+  /* hidden file input */
+  #file-input { display: none; }
+
+  /* Search with clear button */
+  .search-wrap { position: relative; display: flex; align-items: center; }
+  .search-wrap input { padding-right: 22px; }
+  #search-clear {
+    position: absolute;
+    right: 5px;
+    background: none;
+    border: none;
+    color: var(--text3);
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    display: none;
+  }
+  #search-clear:hover { color: var(--text); }
+
+  /* ── MODE TOGGLE ── */
+  .mode-toggle {
+    display: flex;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 2px;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .mode-btn {
+    background: none;
+    border: none;
+    color: var(--text3);
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    transition: all 0.12s;
+    white-space: nowrap;
+  }
+  .mode-btn:hover { color: var(--text2); }
+  .mode-btn.active { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent); }
+
+  /* ── COACHING GRID ── */
+  #coaching-wrap {
+    display: none;
+    flex: 1;
+    overflow: auto;
+    position: relative;
+  }
+  #coaching-wrap.visible { display: block; }
+
+  /* coaching table */
+  #coaching-table { border-collapse: collapse; min-width: 100%; table-layout: fixed; }
+  #coaching-table thead { position: sticky; top: 0; z-index: 10; }
+  #coaching-table th {
+    background: var(--bg2);
+    border-bottom: 2px solid var(--border2);
+    border-right: 1px solid var(--border);
+    padding: 0 6px;
+    height: 28px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    user-select: none;
+    text-align: left;
+  }
+  #coaching-table th:hover { color: var(--text2); }
+  #coaching-table th.sort-active { color: var(--accent); }
+  #coaching-table th.sort-asc::after  { content: ' ▲'; color: var(--accent); font-size: 9px; }
+  #coaching-table th.sort-desc::after { content: ' ▼'; color: var(--accent); font-size: 9px; }
+  #coaching-table td {
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    padding: 0 6px;
+    height: var(--row-h);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+  }
+  #coaching-table tr { cursor: pointer; transition: background 0.06s; }
+  #coaching-table tr:hover td { background: var(--bg3); }
+  #coaching-table tr.selected td { background: var(--accent-dim) !important; }
+
+  /* coaching column widths */
+  .cc-team   { width: 46px; text-align: center; }
+  .cc-role   { width: 82px; }
+  .cc-name   { width: 150px; font-weight: 600; }
+  .cc-ovr    { width: 46px; text-align: center; font-weight: 700; }
+  .cc-age    { width: 40px; text-align: center; color: var(--text2); }
+  .cc-exp    { width: 40px; text-align: center; color: var(--text2); }
+  .cc-scheme { width: 170px; font-size: 11px; }
+  .cc-trait  { width: 150px; font-size: 10px; }
+  .cc-agg    { width: 44px; text-align: center; }
+  .cc-rb     { width: 44px; text-align: center; }
+  .cc-dem    { width: 68px; font-size: 10px; }
+  .cc-attr   { width: 50px; text-align: center; }
+
+  /* role badges */
+  .role-badge {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  .role-HC  { background: var(--elite-dim);  color: var(--elite); }
+  .role-OC  { background: #0d2d4a; color: #5bc4f5; }
+  .role-DC  { background: var(--red-dim); color: var(--red); }
+
+  /* scheme badge */
+  .scheme-badge {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 500;
+  }
+  .scheme-off  { background: #0d2d4a; color: #5bc4f5; }
+  .scheme-def  { background: var(--red-dim); color: var(--red); }
+  .scheme-team { background: var(--bg4); color: var(--text2); }
+
+  /* leadership trait badge */
+  .trait-badge {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 500;
+    background: var(--teal-dim);
+    color: var(--teal);
+  }
+
+  /* agg/rb bar */
+  .meter-cell { display: flex; align-items: center; gap: 4px; }
+  .meter-bar  {
+    flex: 1;
+    height: 6px;
+    background: var(--bg4);
+    border-radius: 3px;
+    overflow: hidden;
+    min-width: 28px;
+  }
+  .meter-fill { height: 100%; border-radius: 3px; transition: width 0.2s; }
+  .meter-agg  { background: var(--amber); }
+  .meter-rb   { background: var(--green); }
+  .meter-num  { font-size: 11px; font-weight: 700; width: 10px; text-align: right; flex-shrink: 0; }
+
+  /* coaching toolbar controls */
+  #coach-toolbar-controls { display: none; gap: 8px; align-items: center; }
+  #coach-toolbar-controls.visible { display: flex; }
+  #player-toolbar-controls { display: flex; gap: 8px; align-items: center; }
+
+  /* coaching panel sections */
+  .coach-scheme-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 6px; gap: 8px;
+  }
+  .coach-scheme-row label { font-size: 10px; color: var(--text2); white-space: nowrap; min-width: 90px; flex-shrink: 0; }
+  .coach-scheme-row select, .coach-scheme-row input {
+    background: var(--bg3); border: 1px solid var(--border2); color: var(--text);
+    padding: 4px 7px; border-radius: 4px; font-family: var(--font); font-size: 11px;
+    width: 100%; outline: none; transition: border-color 0.1s;
+  }
+  .coach-scheme-row select:focus, .coach-scheme-row input:focus { border-color: var(--accent); }
+
+  /* meter slider in panel */
+  .meter-slider-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+  }
+  .meter-slider-row label { font-size: 10px; color: var(--text2); white-space: nowrap; min-width: 110px; flex-shrink: 0; }
+  .meter-slider-row input[type=range] {
+    flex: 1; -webkit-appearance: none; height: 3px; border-radius: 2px;
+    background: var(--border2); outline: none; cursor: pointer;
+  }
+  .meter-slider-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%;
+    background: var(--accent); cursor: pointer; border: 2px solid var(--bg2);
+  }
+  .meter-slider-val { font-size: 11px; font-weight: 700; color: var(--text); width: 18px; text-align: right; flex-shrink: 0; }
+
+  /* coaching count */
+  #coaching-count { font-size: 11px; color: var(--text3); white-space: nowrap; }
+
+  /* coaching panel inline editable override */
+  #coaching-panel-content { display: none; flex-direction: column; height: 100%; }
+
+  /* coach attribute grid — mirrors player attr-grid */
+  .coach-attr-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px 10px;
+  }
+  .coach-attr-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+  }
+  .coach-attr-item label {
+    font-size: 10px;
+    color: var(--text2);
+    white-space: nowrap;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 1;
+  }
+  .coach-attr-item input {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    padding: 3px 5px;
+    border-radius: 3px;
+    font-family: var(--font);
+    font-size: 11px;
+    width: 46px;
+    text-align: center;
+    outline: none;
+    flex-shrink: 0;
+  }
+  .coach-attr-item input:focus { border-color: var(--accent); }
+  .coach-attr-note { font-size: 9px; color: var(--text3); margin-bottom: 8px; font-style: italic; }
+
+  /* dev trait badge for coaches */
+  .dev-badge.dev-xfactor   { background: var(--elite-dim);  color: var(--elite); }
+  .dev-badge.dev-superstar  { background: var(--purple-dim); color: var(--purple); }
+  .dev-badge.dev-normal     { background: var(--bg4);        color: var(--text3); }
+  .dev-badge.dev-declining  { background: var(--red-dim);    color: var(--red); }
+
+  /* dev trait column in coaching grid */
+  .cc-dev { width: 74px; font-size: 10px; }
+
+  /* appearance fields */
+  .cc-appear { width: 60px; text-align: center; color: var(--text2); font-size: 11px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header">
+  <h1>War Room <span>Roster Editor</span></h1>
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="mode-players" onclick="setMode('players')">⚡ Players</button>
+    <button class="mode-btn" id="mode-coaches" onclick="setMode('coaches')">🎯 Coaching</button>
+  </div>
+  <div id="file-status">No file loaded</div>
+  <div id="unsaved-dot" title="Unsaved changes"></div>
+  <button class="hbtn" onclick="document.getElementById('file-input').click()">⬆ Import JSON</button>
+  <input type="file" id="file-input" accept=".json">
+  <button class="hbtn success" id="save-inplace-btn" onclick="saveInPlace()" title="Commit all changes to the loaded file in memory">💾 Save</button>
+  <button class="hbtn primary" onclick="exportJSON()">⬇ Export JSON</button>
+</div>
+
+<!-- TOOLBAR -->
+<div id="toolbar">
+  <!-- Player controls -->
+  <div id="player-toolbar-controls">
+    <div class="search-wrap">
+      <input type="text" id="search" placeholder="Search name, team…" oninput="onSearchInput()">
+      <button id="search-clear" onclick="clearSearch()" title="Clear search">×</button>
+    </div>
+    <select id="f-team" onchange="applyFilters()"><option value="">All Teams</option></select>
+    <select id="f-pos"  onchange="applyFilters()"><option value="">All Positions</option></select>
+    <select id="f-dev"  onchange="applyFilters()">
+      <option value="">All Dev Traits</option>
+      <option>XFactor</option>
+      <option>Superstar</option>
+      <option>Normal</option>
+      <option>Declining</option>
+    </select>
+    <select id="f-per" onchange="applyFilters()">
+      <option value="">All Personalities</option>
+      <option value="__none__">— Not Set —</option>
+      <option>FranchiseCornerstone</option>
+      <option>TeamCaptain</option>
+      <option>ModelProfessional</option>
+      <option>Grinder</option>
+      <option>ClutchPerformer</option>
+      <option>QuietLeader</option>
+      <option>Competitor</option>
+      <option>FanFavorite</option>
+      <option>Mercenary</option>
+      <option>Showboat</option>
+      <option>SilentAssassin</option>
+      <option>Perfectionist</option>
+      <option>LockerRoomGuy</option>
+      <option>SteadyVeteran</option>
+      <option>Sparkplug</option>
+      <option>Professional</option>
+      <option>LaidBack</option>
+      <option>Hothead</option>
+      <option>Diva</option>
+      <option>Unmotivated</option>
+      <option>HeadCase</option>
+    </select>
+    <div class="tb-sep"></div>
+    <span id="player-count">0 players</span>
+  </div>
+  <!-- Coaching controls -->
+  <div id="coach-toolbar-controls">
+    <div class="search-wrap">
+      <input type="text" id="coach-search" placeholder="Search name, team…" oninput="onCoachSearchInput()">
+      <button id="coach-search-clear" onclick="clearCoachSearch()" title="Clear search" style="position:absolute;right:5px;background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:0;display:none;">×</button>
+    </div>
+    <select id="cf-team" onchange="applyCoachFilters()"><option value="">All Teams</option></select>
+    <select id="cf-role" onchange="applyCoachFilters()">
+      <option value="">All Roles</option>
+      <option value="headCoach">Head Coach</option>
+      <option value="offensiveCoordinator">Off. Coordinator</option>
+      <option value="defensiveCoordinator">Def. Coordinator</option>
+    </select>
+    <select id="cf-oscheme" onchange="applyCoachFilters()"><option value="">All Off. Schemes</option></select>
+    <select id="cf-dscheme" onchange="applyCoachFilters()"><option value="">All Def. Schemes</option></select>
+    <div class="tb-sep"></div>
+    <span id="coaching-count">0 coaches</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <!-- PLAYER GRID -->
+  <div id="grid-wrap">
+    <table id="roster-table">
+      <thead id="thead"></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- COACHING GRID -->
+  <div id="coaching-wrap">
+    <table id="coaching-table">
+      <thead id="coaching-thead"></thead>
+      <tbody id="coaching-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- DETAIL PANEL (shared shell, content swaps) -->
+  <div id="panel">
+    <!-- Player empty state -->
+    <div id="panel-empty">
+      <div class="icon">📋</div>
+      <div>Select a player to edit</div>
+    </div>
+    <!-- Coaching empty state -->
+    <div id="coaching-panel-empty" style="display:none; flex-direction:column; align-items:center; justify-content:center; height:100%; gap:8px; color:var(--text3); font-size:11px; text-align:center; padding:20px;">
+      <div class="icon" style="font-size:32px;opacity:.3;margin-bottom:4px;">🎯</div>
+      <div>Select a coach to edit</div>
+    </div>
+    <!-- Player panel content -->
+    <div id="panel-content" style="display:none; flex-direction:column; height:100%;">
+      <div id="panel-header">
+        <div id="panel-name">—</div>
+        <div id="panel-meta">—</div>
+      </div>
+      <div id="panel-body"></div>
+      <div id="panel-footer">
+        <button id="discard-btn" onclick="discardChanges()">Discard</button>
+        <button id="save-btn" onclick="savePanel()">SAVE CHANGES</button>
+      </div>
+    </div>
+    <!-- Coaching panel content -->
+    <div id="coaching-panel-content">
+      <div id="coaching-panel-header" style="padding:12px 14px 10px; border-bottom:1px solid var(--border); flex-shrink:0;">
+        <div id="coaching-panel-name" style="font-size:14px;font-weight:700;color:var(--text);line-height:1.2;margin-bottom:2px;">—</div>
+        <div id="coaching-panel-meta" style="font-size:10px;color:var(--text3);letter-spacing:.06em;">—</div>
+      </div>
+      <div id="coaching-panel-body" style="flex:1;overflow-y:auto;padding:10px 14px 20px;"></div>
+      <div id="coaching-panel-footer" style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0;">
+        <button id="coaching-discard-btn" onclick="discardCoachChanges()" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text3);padding:8px 12px;border-radius:5px;cursor:pointer;font-family:var(--font);font-size:11px;transition:all .12s;" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text3)'">Discard</button>
+        <button id="coaching-save-btn" onclick="saveCoachPanel()" style="flex:1;background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent);padding:8px;border-radius:5px;cursor:pointer;font-family:var(--font);font-size:11px;font-weight:600;letter-spacing:.08em;transition:all .12s;" onmouseover="this.style.background='var(--accent)';this.style.color='#fff'" onmouseout="this.style.background='var(--accent-dim)';this.style.color='var(--accent)'">SAVE CHANGES</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────
+//  DATA
+// ─────────────────────────────────────────────
+let rosterData = null;     // full parsed JSON
+let players    = [];       // flat array ref
+let filtered   = [];       // current view
+let sortCol    = 'overall';
+let sortDir    = 'desc';
+let selectedIdx = null;    // index into players[]
+let pendingEdits = {};     // unsaved field changes for current player
+
+const PERSONALITY_LABELS = [
+  'FranchiseCornerstone','TeamCaptain','ModelProfessional','Grinder','ClutchPerformer',
+  'QuietLeader','Competitor','FanFavorite','Mercenary','Showboat','SilentAssassin',
+  'Perfectionist','LockerRoomGuy','SteadyVeteran','Sparkplug','Professional',
+  'LaidBack','Hothead','Diva','Unmotivated','HeadCase'
+];
+
+const PER_CATEGORY = {
+  FranchiseCornerstone:'positive', TeamCaptain:'positive', ModelProfessional:'positive',
+  QuietLeader:'positive', LockerRoomGuy:'positive', SteadyVeteran:'positive',
+  Grinder:'edge', Competitor:'edge', ClutchPerformer:'edge', SilentAssassin:'edge',
+  Perfectionist:'edge', Sparkplug:'edge',
+  FanFavorite:'neutral', Professional:'neutral', LaidBack:'neutral',
+  Mercenary:'problem', Showboat:'problem', Hothead:'problem',
+  Diva:'problem', Unmotivated:'problem', HeadCase:'problem'
+};
+
+const HP_TRAITS = ['workEthic','competitiveness','composure','leadership','loyalty','temperament','ego'];
+
+const POSITION_ATTRS = {
+  QB:  ['shortAcc','midAcc','deepAcc','throwUnderPressure','decisionMaking','readProgression','awareness','throwPower','throwOnRun','leadPass','playAction','pocketPresence','escapability','speed','acceleration','agility','strength','clutch','consistency','durability'],
+  RB:  ['speed','acceleration','agility','ballCarrierVision','awareness','elusiveness','jukeMove','breakTackle','spinMove','stiffArm','trucking','strength','catching','catchInTraffic','spectacularCatch','jumpBall','hands','shortRouteRun','midRouteRun','deepRouteRun','routeCrisp','separation','release','passBlock','chipBlock','stamina','clutch','consistency','durability'],
+  WR:  ['catching','catchInTraffic','spectacularCatch','jumpBall','hands','shortRouteRun','midRouteRun','deepRouteRun','routeCrisp','separation','release','speed','acceleration','agility','strength','yac','runAfterCatch','blocking','awareness','clutch','consistency','durability'],
+  TE:  ['catching','catchInTraffic','spectacularCatch','hands','separation','yac','elusiveness','shortRouteRun','midRouteRun','deepRouteRun','routeCrisp','release','runBlock','passBlock','impactBlock','leadBlock','footwork','speed','acceleration','agility','strength','stamina','awareness','clutch','consistency','durability'],
+  LT:  ['passBlock','passBlockFinesse','anchor','runBlock','runBlockFinesse','impactBlock','pulling','technique','footwork','strength','acceleration','agility','stamina','awareness','consistency','durability'],
+  LG:  ['passBlock','passBlockFinesse','anchor','runBlock','runBlockFinesse','impactBlock','pulling','technique','footwork','strength','acceleration','agility','stamina','awareness','consistency','durability'],
+  C:   ['passBlock','passBlockFinesse','anchor','runBlock','runBlockFinesse','impactBlock','pulling','technique','footwork','strength','acceleration','agility','stamina','awareness','consistency','durability'],
+  RG:  ['passBlock','passBlockFinesse','anchor','runBlock','runBlockFinesse','impactBlock','pulling','technique','footwork','strength','acceleration','agility','stamina','awareness','consistency','durability'],
+  RT:  ['passBlock','passBlockFinesse','anchor','runBlock','runBlockFinesse','impactBlock','pulling','technique','footwork','strength','acceleration','agility','stamina','awareness','consistency','durability'],
+  DE:  ['passRushPower','passRushFinesse','bullRush','spinMove','rip','swatBall','blockShedding','tackle','hitPower','speed','acceleration','agility','strength','stamina','pursuit','awareness','consistency','durability'],
+  DT:  ['passRushPower','passRushFinesse','anchor','spinMove','swatBall','blockShedding','tackle','hitPower','speed','acceleration','agility','strength','stamina','pursuit','awareness','consistency','durability'],
+  ILB: ['tackle','blockShedding','hitPower','physicality','zoneCoverage','manCoverage','leadBreak','catching','passRushPower','passRushFinesse','bullRush','spinMove','rip','swatBall','speed','acceleration','agility','strength','stamina','pursuit','awareness','playRecognition','clutch','consistency','durability'],
+  OLB: ['tackle','blockShedding','hitPower','physicality','zoneCoverage','manCoverage','leadBreak','catching','passRushPower','passRushFinesse','bullRush','spinMove','rip','swatBall','speed','acceleration','agility','strength','stamina','pursuit','awareness','playRecognition','clutch','consistency','durability'],
+  CB:  ['manCoverage','zoneCoverage','press','anticipation','leadBreak','jumpBall','catching','tackle','physicality','speed','acceleration','agility','strength','stamina','pursuit','awareness','playRecognition','clutch','consistency','durability'],
+  S:   ['zoneCoverage','manCoverage','anticipation','leadBreak','range','catching','tackle','hitPower','blockShedding','passRushPower','passRushFinesse','bullRush','spinMove','rip','swatBall','speed','acceleration','agility','strength','stamina','pursuit','awareness','playRecognition','clutch','consistency','durability'],
+  K:   ['kickPower','kickAccuracy','clutch','awareness','consistency','durability','kickoffPower','kickoffAccuracy'],
+  P:   ['puntPower','hangTime','directionality','pooch','awareness','consistency','durability'],
+  LB:  ['tackle','blockShedding','hitPower','physicality','zoneCoverage','manCoverage','leadBreak','catching','passRushPower','passRushFinesse','speed','acceleration','agility','strength','stamina','pursuit','awareness','playRecognition','clutch','consistency','durability']
+};
+
+// Base columns — always present regardless of position filter
+const BASE_COLUMNS = [
+  { key: '_idx',             label: '#',           cls: 'c-idx',  sortable: false },
+  { key: 'name',             label: 'Name',         cls: 'c-name', sortable: true  },
+  { key: 'team',             label: 'Team',         cls: 'c-team', sortable: true  },
+  { key: 'position',         label: 'Pos',          cls: 'c-pos',  sortable: true  },
+  { key: 'overall',          label: 'OVR',          cls: 'c-ovr',  sortable: true  },
+  { key: 'potential',        label: 'POT',          cls: 'c-pot',  sortable: true  },
+  { key: 'age',              label: 'Age',          cls: 'c-age',  sortable: true  },
+  { key: 'height',           label: 'Ht',           cls: 'c-ht',   sortable: true  },
+  { key: 'weight',           label: 'Wt',           cls: 'c-wt',   sortable: true  },
+  { key: 'experience',       label: 'Exp',          cls: 'c-exp',  sortable: true  },
+  { key: 'developmentTrait', label: 'Dev',          cls: 'c-dev',  sortable: true  },
+  { key: 'personalityLabel', label: 'Personality',  cls: 'c-per',  sortable: true  },
+];
+
+// Default attribute columns shown when no position is filtered
+const DEFAULT_ATTR_COLS = ['speed','acceleration','agility','strength','stamina','awareness','clutch','consistency','durability'];
+
+// Full label map for attribute abbreviations in column headers
+const ATTR_LABEL = {
+  shortAcc:'Short Acc', midAcc:'Mid Acc', deepAcc:'Deep Acc', throwPower:'Throw Pwr',
+  throwOnRun:'Throw Run', throwUnderPressure:'TUP', pocketPresence:'Pocket',
+  playAction:'Play Act', leadPass:'Lead Pass', readProgression:'Read Prog',
+  decisionMaking:'Decision', escapability:'Escape',
+  ballCarrierVision:'BCVision', jukeMove:'Juke', breakTackle:'Brk Tackle',
+  spinMove:'Spin', stiffArm:'Stiff Arm', trucking:'Trucking', chipBlock:'Chip Blk',
+  jumpBall:'Jump Ball', runAfterCatch:'RAC',
+  catching:'Catching', catchInTraffic:'CIT', spectacularCatch:'Spec Catch',
+  hands:'Hands', separation:'Sep', yac:'YAC', elusiveness:'Elusivns',
+  shortRouteRun:'Shrt Rte', midRouteRun:'Mid Rte', deepRouteRun:'Deep Rte',
+  routeCrisp:'Crisp', release:'Release', blocking:'Blocking',
+  runBlock:'Run Blk', passBlock:'Pass Blk', impactBlock:'Impact',
+  leadBlock:'Lead Blk', footwork:'Footwork',
+  passBlockFinesse:'PB Fin', anchor:'Anchor', runBlockFinesse:'RB Fin',
+  pulling:'Pulling', technique:'Tech',
+  passRushPower:'PR Pwr', passRushFinesse:'PR Fin', bullRush:'Bull Rush',
+  rip:'Rip', swatBall:'Swat', blockShedding:'Blk Shed', tackle:'Tackle',
+  hitPower:'Hit Pwr', pursuit:'Pursuit',
+  physicality:'Physical', zoneCoverage:'Zone Cov', manCoverage:'Man Cov',
+  leadBreak:'Lead Brk', playRecognition:'Play Rec', anticipation:'Anticipate',
+  press:'Press', range:'Range',
+  kickPower:'Kick Pwr', kickAccuracy:'Kick Acc', kickoffPower:'KO Pwr',
+  kickoffAccuracy:'KO Acc', puntPower:'Punt Pwr', hangTime:'Hang Time',
+  directionality:'Direction', pooch:'Pooch',
+  speed:'Speed', acceleration:'Accel', agility:'Agility', strength:'Strength',
+  stamina:'Stamina', awareness:'Aware', clutch:'Clutch',
+  consistency:'Consist', durability:'Durable',
+};
+
+// Grouped attribute sets per position (for header group rows)
+const ATTR_GROUPS = {
+  QB: [
+    {label:'Passing',    attrs:['shortAcc','midAcc','deepAcc','throwUnderPressure','throwPower','throwOnRun','leadPass','playAction','pocketPresence']},
+    {label:'IQ',         attrs:['decisionMaking','readProgression','awareness']},
+    {label:'Mobility',   attrs:['escapability','speed','acceleration','agility']},
+    {label:'Physical',   attrs:['strength','clutch','consistency','durability']},
+  ],
+  RB: [
+    {label:'Ball Carrier', attrs:['speed','acceleration','agility','ballCarrierVision','elusiveness','jukeMove','breakTackle','spinMove','stiffArm','trucking','strength']},
+    {label:'Receiving',    attrs:['catching','catchInTraffic','spectacularCatch','jumpBall','hands','shortRouteRun','midRouteRun','deepRouteRun','routeCrisp','separation','release','yac']},
+    {label:'Blocking',     attrs:['passBlock','chipBlock']},
+    {label:'Mental',       attrs:['awareness','stamina','clutch','consistency','durability']},
+  ],
+  WR: [
+    {label:'Receiving',  attrs:['catching','catchInTraffic','spectacularCatch','jumpBall','hands','separation','yac','runAfterCatch']},
+    {label:'Routes',     attrs:['shortRouteRun','midRouteRun','deepRouteRun','routeCrisp','release']},
+    {label:'Athletic',   attrs:['speed','acceleration','agility','strength']},
+    {label:'Mental',     attrs:['blocking','awareness','clutch','consistency','durability']},
+  ],
+  TE: [
+    {label:'Receiving',  attrs:['catching','catchInTraffic','spectacularCatch','hands','separation','yac','elusiveness']},
+    {label:'Routes',     attrs:['shortRouteRun','midRouteRun','deepRouteRun','routeCrisp','release']},
+    {label:'Blocking',   attrs:['runBlock','passBlock','impactBlock','leadBlock','footwork']},
+    {label:'Athletic',   attrs:['speed','acceleration','agility','strength','stamina']},
+    {label:'Mental',     attrs:['awareness','clutch','consistency','durability']},
+  ],
+  DE: [
+    {label:'Pass Rush',  attrs:['passRushPower','passRushFinesse','bullRush','spinMove','rip','swatBall']},
+    {label:'Defense',    attrs:['blockShedding','tackle','hitPower','pursuit']},
+    {label:'Athletic',   attrs:['speed','acceleration','agility','strength','stamina']},
+    {label:'Mental',     attrs:['awareness','consistency','durability']},
+  ],
+  DT: [
+    {label:'Pass Rush',  attrs:['passRushPower','passRushFinesse','anchor','spinMove','swatBall']},
+    {label:'Defense',    attrs:['blockShedding','tackle','hitPower','pursuit']},
+    {label:'Athletic',   attrs:['speed','acceleration','agility','strength','stamina']},
+    {label:'Mental',     attrs:['awareness','consistency','durability']},
+  ],
+  ILB: [
+    {label:'Defense',    attrs:['tackle','blockShedding','hitPower','physicality','pursuit','playRecognition']},
+    {label:'Coverage',   attrs:['zoneCoverage','manCoverage','leadBreak','catching']},
+    {label:'Pass Rush',  attrs:['passRushPower','passRushFinesse','bullRush','spinMove','rip','swatBall']},
+    {label:'Athletic',   attrs:['speed','acceleration','agility','strength','stamina']},
+    {label:'Mental',     attrs:['awareness','clutch','consistency','durability']},
+  ],
+  OLB: [
+    {label:'Pass Rush',  attrs:['passRushPower','passRushFinesse','bullRush','spinMove','rip','swatBall']},
+    {label:'Defense',    attrs:['tackle','blockShedding','hitPower','physicality','pursuit','playRecognition']},
+    {label:'Coverage',   attrs:['zoneCoverage','manCoverage','leadBreak','catching']},
+    {label:'Athletic',   attrs:['speed','acceleration','agility','strength','stamina']},
+    {label:'Mental',     attrs:['awareness','clutch','consistency','durability']},
+  ],
+  CB: [
+    {label:'Coverage',   attrs:['manCoverage','zoneCoverage','press','anticipation','leadBreak','jumpBall','playRecognition']},
+    {label:'Defense',    attrs:['catching','tackle','physicality','pursuit']},
+    {label:'Athletic',   attrs:['speed','acceleration','agility','strength','stamina']},
+    {label:'Mental',     attrs:['awareness','clutch','consistency','durability']},
+  ],
+  S: [
+    {label:'Coverage',   attrs:['zoneCoverage','manCoverage','anticipation','leadBreak','range','playRecognition']},
+    {label:'Defense',    attrs:['catching','tackle','hitPower','blockShedding','pursuit']},
+    {label:'Pass Rush',  attrs:['passRushPower','passRushFinesse','bullRush','spinMove','rip','swatBall']},
+    {label:'Athletic',   attrs:['speed','acceleration','agility','strength','stamina']},
+    {label:'Mental',     attrs:['awareness','clutch','consistency','durability']},
+  ],
+  K: [
+    {label:'Kicking',    attrs:['kickPower','kickAccuracy','kickoffPower','kickoffAccuracy']},
+    {label:'Mental',     attrs:['clutch','awareness','consistency','durability']},
+  ],
+  P: [
+    {label:'Punting',    attrs:['puntPower','hangTime','directionality','pooch']},
+    {label:'Mental',     attrs:['awareness','consistency','durability']},
+  ],
+};
+['LT','LG','C','RG','RT'].forEach(p => ATTR_GROUPS[p] = [
+  {label:'Pass Block', attrs:['passBlock','passBlockFinesse','anchor','technique','footwork']},
+  {label:'Run Block',  attrs:['runBlock','runBlockFinesse','impactBlock','pulling']},
+  {label:'Athletic',   attrs:['strength','acceleration','agility','stamina']},
+  {label:'Mental',     attrs:['awareness','consistency','durability']},
+]);
+
+// Returns the active columns array based on current position filter
+function getActiveColumns() {
+  const pos = document.getElementById('f-pos') ? document.getElementById('f-pos').value : '';
+  let attrCols = [];
+  if (pos && ATTR_GROUPS[pos]) {
+    ATTR_GROUPS[pos].forEach(g => {
+      g.attrs.forEach(a => attrCols.push({ key: 'attr:' + a, label: ATTR_LABEL[a] || a, cls: 'c-attr', sortable: true, group: g.label }));
+    });
+  } else {
+    DEFAULT_ATTR_COLS.forEach(a => attrCols.push({ key: 'attr:' + a, label: ATTR_LABEL[a] || a, cls: 'c-attr', sortable: true, group: '' }));
+  }
+  return [...BASE_COLUMNS, ...attrCols];
+}
+
+function chipClass(v) {
+  if (v == null) return 'chip-none';
+  if (v >= 90) return 'chip-elite';
+  if (v >= 75) return 'chip-good';
+  if (v >= 60) return 'chip-avg';
+  return 'chip-poor';
+}
+
+// ─────────────────────────────────────────────
+//  BOOT: Load JSON from disk
+// ─────────────────────────────────────────────
+(async function init() {
+  try {
+    const resp = await fetch('Claude_Roster_1.json');
+    if (!resp.ok) throw new Error('fetch failed');
+    const json = await resp.json();
+    loadRoster(json, 'Claude_Roster_1.json');
+  } catch(e) {
+    document.getElementById('file-status').textContent = 'Auto-load failed — use Import JSON';
+  }
+})();
+
+document.getElementById('file-input').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const json = JSON.parse(ev.target.result);
+      loadRoster(json, file.name);
+    } catch(err) {
+      toast('Invalid JSON — ' + err.message, true);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+function loadRoster(json, filename) {
+  rosterData = json;
+  players = json.players || [];
+  document.getElementById('file-status').textContent = filename + ' — ' + players.length + ' players';
+  buildFilters();
+  applyFilters();
+  // ── Coaching mode bootstrap ──
+  buildCoachFlat();
+  buildCoachFilters();
+  if (currentMode === 'coaches') applyCoachFilters();
+  toast('Loaded ' + players.length + ' players');
+}
+
+// ─────────────────────────────────────────────
+//  FILTERS & SORT
+// ─────────────────────────────────────────────
+function buildFilters() {
+  const teams = [...new Set(players.map(p => p.team).filter(Boolean))].sort();
+  const positions = [...new Set(players.map(p => p.position).filter(Boolean))].sort();
+
+  const fTeam = document.getElementById('f-team');
+  fTeam.innerHTML = '<option value="">All Teams</option>' + teams.map(t => `<option>${t}</option>`).join('');
+
+  const fPos = document.getElementById('f-pos');
+  fPos.innerHTML = '<option value="">All Positions</option>' + positions.map(p => `<option>${p}</option>`).join('');
+}
+
+function applyFilters() {
+  const q    = document.getElementById('search').value.toLowerCase();
+  const team = document.getElementById('f-team').value;
+  const pos  = document.getElementById('f-pos').value;
+  const dev  = document.getElementById('f-dev').value;
+  const per  = document.getElementById('f-per').value;
+
+  // If sort col is a position-specific attr and position changed, reset sort
+  if (sortCol && sortCol.startsWith('attr:')) {
+    const attrKey = sortCol.slice(5);
+    const validAttrs = pos && ATTR_GROUPS[pos]
+      ? ATTR_GROUPS[pos].flatMap(g => g.attrs)
+      : DEFAULT_ATTR_COLS;
+    if (!validAttrs.includes(attrKey)) {
+      sortCol = 'overall';
+      sortDir = 'desc';
+    }
+  }
+
+  filtered = players.filter(p => {
+    const name = `${p.firstName} ${p.lastName}`.toLowerCase();
+    if (q && !name.includes(q) && !(p.team||'').toLowerCase().includes(q)) return false;
+    if (team && p.team !== team) return false;
+    if (pos  && p.position !== pos) return false;
+    if (dev  && p.developmentTrait !== dev) return false;
+    if (per) {
+      if (per === '__none__') { if (p.personalityLabel) return false; }
+      else if (p.personalityLabel !== per) return false;
+    }
+    return true;
+  });
+
+  sortFiltered();
+  renderTable();
+  document.getElementById('player-count').textContent = filtered.length + ' players';
+}
+
+function sortFiltered() {
+  filtered.sort((a, b) => {
+    let av, bv;
+    if (sortCol === 'name') {
+      av = `${a.firstName} ${a.lastName}`;
+      bv = `${b.firstName} ${b.lastName}`;
+    } else if (sortCol === 'personalityLabel') {
+      av = a.personalityLabel || '';
+      bv = b.personalityLabel || '';
+    } else if (sortCol.startsWith('attr:')) {
+      const attrKey = sortCol.slice(5);
+      av = (a.attributes && a.attributes[attrKey] != null) ? a.attributes[attrKey] : -Infinity;
+      bv = (b.attributes && b.attributes[attrKey] != null) ? b.attributes[attrKey] : -Infinity;
+    } else {
+      av = a[sortCol] ?? (typeof a[sortCol] === 'number' ? -Infinity : '');
+      bv = b[sortCol] ?? (typeof b[sortCol] === 'number' ? -Infinity : '');
+    }
+    let cmp = 0;
+    if (typeof av === 'number' && typeof bv === 'number') cmp = av - bv;
+    else cmp = String(av).localeCompare(String(bv));
+    return sortDir === 'desc' ? -cmp : cmp;
+  });
+}
+
+// ─────────────────────────────────────────────
+//  TABLE RENDER
+// ─────────────────────────────────────────────
+function renderTable() {
+  const pos = document.getElementById('f-pos').value;
+  const COLUMNS = getActiveColumns();
+
+  // thead — build group row + col row
+  const thead = document.getElementById('thead');
+  thead.innerHTML = '';
+
+  if (pos && ATTR_GROUPS[pos]) {
+    // Group header row
+    const groupTr = document.createElement('tr');
+    groupTr.className = 'group-header';
+    // Stub cell spanning all base columns
+    const stub = document.createElement('th');
+    stub.colSpan = BASE_COLUMNS.length;
+    groupTr.appendChild(stub);
+    // Group cells
+    ATTR_GROUPS[pos].forEach((g, gi) => {
+      const th = document.createElement('th');
+      th.colSpan = g.attrs.length;
+      th.textContent = g.label;
+      if (gi > 0) th.style.borderLeft = '1px solid var(--border2)';
+      groupTr.appendChild(th);
+    });
+    thead.appendChild(groupTr);
+  }
+
+  // Column header row
+  const colTr = document.createElement('tr');
+  COLUMNS.forEach((col, ci) => {
+    const th = document.createElement('th');
+    th.className = col.cls + (sortCol === col.key ? ' sort-active ' + (sortDir === 'desc' ? 'sort-desc' : 'sort-asc') : '');
+    th.textContent = col.label;
+    if (col.sortable) th.onclick = () => setSort(col.key);
+    // Group separator — first attr col of each group after the first
+    if (col.key.startsWith('attr:') && pos && ATTR_GROUPS[pos]) {
+      const attrKey = col.key.slice(5);
+      ATTR_GROUPS[pos].forEach((g, gi) => {
+        if (gi > 0 && g.attrs[0] === attrKey) th.style.borderLeft = '1px solid var(--border2)';
+      });
+    }
+    colTr.appendChild(th);
+  });
+  thead.appendChild(colTr);
+
+  // tbody
+  const tbody = document.getElementById('tbody');
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr class="no-data"><td colspan="${COLUMNS.length}">No players match the current filters.</td></tr>`;
+    return;
+  }
+
+  const rows = filtered.map((p, i) => {
+    const globalIdx = players.indexOf(p);
+    const isSelected = globalIdx === selectedIdx;
+    const name = `${p.firstName} ${p.lastName}`;
+    const ovr = p.overall ?? '—';
+    const ovrCls = ovrClass(ovr);
+    const perBadge = p.personalityLabel
+      ? `<span class="per-badge per-${PER_CATEGORY[p.personalityLabel]||'neutral'}">${p.personalityLabel}</span>`
+      : `<span class="per-badge per-none">auto</span>`;
+
+    const ce = (field, val) => `<span class="cell-editable" data-gidx="${globalIdx}" data-field="${field}">${val ?? '—'}</span>`;
+
+    // Attr cells — with group separators when position is filtered
+    let attrCells = '';
+    if (pos && ATTR_GROUPS[pos]) {
+      ATTR_GROUPS[pos].forEach((g, gi) => {
+        g.attrs.forEach((a, ai) => {
+          const v = p.attributes && p.attributes[a] != null ? p.attributes[a] : null;
+          const chipCls = chipClass(v);
+          const border = (ai === 0 && gi > 0) ? ' style="border-left:1px solid var(--border2)"' : '';
+          attrCells += `<td class="c-attr"${border}><span class="chip ${chipCls}" data-gidx="${globalIdx}" data-attr="${a}">${v ?? '—'}</span></td>`;
+        });
+      });
+    } else {
+      DEFAULT_ATTR_COLS.forEach(a => {
+        const v = p.attributes && p.attributes[a] != null ? p.attributes[a] : null;
+        const chipCls = chipClass(v);
+        attrCells += `<td class="c-attr"><span class="chip ${chipCls}" data-gidx="${globalIdx}" data-attr="${a}">${v ?? '—'}</span></td>`;
+      });
+    }
+
+    const devVal = p.developmentTrait || '';
+    const devDisplay = devVal
+      ? `<span class="dev-badge dev-${devVal}">${devVal}</span>`
+      : `<span style="color:var(--text3)">—</span>`;
+
+    return `<tr data-gidx="${globalIdx}" class="${isSelected ? 'selected' : ''}">
+      <td class="c-idx">${i+1}</td>
+      <td class="c-name">${name}</td>
+      <td class="c-team"><span class="team-editable" data-gidx="${globalIdx}">${p.team||'—'}</span></td>
+      <td class="c-pos">${p.position||'—'}</td>
+      <td class="c-ovr"><span class="chip ${chipClass(typeof ovr === 'number' ? ovr : null)} chip-ovr" data-gidx="${globalIdx}" data-field="overall">${ovr}</span></td>
+      <td class="c-pot"><span class="chip ${chipClass(typeof p.potential === 'number' ? p.potential : null)} chip-pot" data-gidx="${globalIdx}" data-field="potential">${p.potential ?? '—'}</span></td>
+      <td class="c-age">${ce('age', p.age)}</td>
+      <td class="c-ht">${ce('height', p.height)}</td>
+      <td class="c-wt">${ce('weight', p.weight)}</td>
+      <td class="c-exp">${ce('experience', p.experience)}</td>
+      <td class="c-dev"><span class="dev-editable" data-gidx="${globalIdx}">${devDisplay}</span></td>
+      <td class="c-per"><span class="per-editable" data-gidx="${globalIdx}">${perBadge}</span></td>
+      ${attrCells}
+    </tr>`;
+  }).join('');
+
+  tbody.innerHTML = rows;
+
+  // ── ROW CLICK → open panel (ignore clicks on editable spans and chips) ──
+  tbody.querySelectorAll('tr[data-gidx]').forEach(tr => {
+    tr.addEventListener('click', e => {
+      if (e.target.classList.contains('chip')) return;
+      if (e.target.dataset.field === 'overall') return;
+      if (e.target.dataset.field === 'potential') return;
+      if (e.target.classList.contains('cell-editable')) return;
+      if (e.target.classList.contains('dev-editable')) return;
+      if (e.target.closest('.dev-editable')) return;
+      if (e.target.classList.contains('per-editable')) return;
+      if (e.target.closest('.per-editable')) return;
+      if (e.target.classList.contains('team-editable')) return;
+      if (e.target.closest('.team-editable')) return;
+      selectPlayer(parseInt(tr.dataset.gidx));
+    });
+  });
+
+  // ── INLINE DEV TRAIT EDITING: click the Dev cell to get a dropdown ──
+  const DEV_OPTIONS = ['XFactor','Superstar','Normal','Declining'];
+  tbody.querySelectorAll('.dev-editable[data-gidx]').forEach(span => {
+    span.style.cursor = 'pointer';
+    span.title = 'Click to change Dev Trait';
+    span.addEventListener('click', e => {
+      e.stopPropagation();
+      if (span.querySelector('select')) return; // already open
+      const gidx = parseInt(span.dataset.gidx);
+      const p = players[gidx];
+      const origVal = p.developmentTrait || '';
+
+      const sel = document.createElement('select');
+      sel.style.cssText = 'background:var(--bg3);border:1px solid var(--accent);color:var(--text);font-family:var(--font);font-size:10px;border-radius:3px;padding:1px 2px;outline:none;';
+      sel.innerHTML = '<option value="">— auto —</option>' +
+        DEV_OPTIONS.map(d => `<option value="${d}"${origVal===d?' selected':''}>${d}</option>`).join('');
+      span.innerHTML = '';
+      span.appendChild(sel);
+      sel.focus();
+
+      function commitDev() {
+        const v = sel.value;
+        if (v) p.developmentTrait = v;
+        else delete p.developmentTrait;
+        markUnsaved();
+
+        const badge = v
+          ? `<span class="dev-badge dev-${v}">${v}</span>`
+          : `<span style="color:var(--text3)">—</span>`;
+        span.innerHTML = badge;
+
+        // Sync panel if open
+        if (selectedIdx === gidx) {
+          const panelSel = document.querySelector('#panel-body [data-key="developmentTrait"]');
+          if (panelSel) panelSel.value = v;
+        }
+      }
+
+      sel.addEventListener('change', () => { commitDev(); });
+      sel.addEventListener('blur',   () => { setTimeout(commitDev, 100); });
+      sel.addEventListener('keydown', ev => {
+        if (ev.key === 'Escape') { span.innerHTML = origVal ? `<span class="dev-badge dev-${origVal}">${origVal}</span>` : `<span style="color:var(--text3)">—</span>`; }
+      });
+    });
+  });
+
+  // ── INLINE PERSONALITY EDITING: click the Personality cell to get a dropdown ──
+  tbody.querySelectorAll('.per-editable[data-gidx]').forEach(span => {
+    span.style.cursor = 'pointer';
+    span.title = 'Click to change Personality';
+    span.addEventListener('click', e => {
+      e.stopPropagation();
+      if (span.querySelector('select')) return; // already open
+      const gidx = parseInt(span.dataset.gidx);
+      const p = players[gidx];
+      const origVal = p.personalityLabel || '';
+
+      const sel = document.createElement('select');
+      sel.style.cssText = 'background:var(--bg3);border:1px solid var(--accent);color:var(--text);font-family:var(--font);font-size:10px;border-radius:3px;padding:1px 2px;outline:none;max-width:128px;';
+      sel.innerHTML = '<option value="">— procedural —</option>' +
+        PERSONALITY_LABELS.map(l => `<option value="${l}"${origVal===l?' selected':''}>${l}</option>`).join('');
+      span.innerHTML = '';
+      span.appendChild(sel);
+      sel.focus();
+
+      function renderPerBadge(v) {
+        return v
+          ? `<span class="per-badge per-${PER_CATEGORY[v]||'neutral'}">${v}</span>`
+          : `<span class="per-badge per-none">auto</span>`;
+      }
+
+      function commitPer() {
+        const v = sel.value;
+        if (v) p.personalityLabel = v;
+        else delete p.personalityLabel;
+        markUnsaved();
+        span.innerHTML = renderPerBadge(v);
+        // Sync panel if open
+        if (selectedIdx === gidx) {
+          const panelSel = document.querySelector('#panel-body [data-key="personalityLabel"]');
+          if (panelSel) panelSel.value = v;
+        }
+      }
+
+      sel.addEventListener('change', () => { commitPer(); });
+      sel.addEventListener('blur',   () => { setTimeout(commitPer, 100); });
+      sel.addEventListener('keydown', ev => {
+        if (ev.key === 'Escape') { span.innerHTML = renderPerBadge(origVal); }
+      });
+    });
+  });
+
+  // ── INLINE TEAM EDITING: click Team cell for dropdown ──
+  const ALL_TEAMS = ['ARI','ATL','BAL','BUF','CAR','CHI','CIN','CLE','DAL','DEN','DET','GB','HOU','IND','JAX','KC','LAC','LAR','LV','MIA','MIN','NE','NO','NYG','NYJ','PHI','PIT','SEA','SF','TB','TEN','WAS','FA'];
+  tbody.querySelectorAll('.team-editable[data-gidx]').forEach(span => {
+    span.style.cursor = 'pointer';
+    span.title = 'Click to change team';
+    span.addEventListener('click', e => {
+      e.stopPropagation();
+      if (span.querySelector('select')) return;
+      const gidx = parseInt(span.dataset.gidx);
+      const p = players[gidx];
+      const origVal = p.team || '';
+
+      const sel = document.createElement('select');
+      sel.style.cssText = 'background:var(--bg3);border:1px solid var(--accent);color:var(--text);font-family:var(--font);font-size:11px;font-weight:600;border-radius:3px;padding:1px 2px;outline:none;width:58px;';
+      sel.innerHTML = ALL_TEAMS.map(t => `<option value="${t}"${origVal===t?' selected':''}>${t}</option>`).join('');
+      span.innerHTML = '';
+      span.appendChild(sel);
+      sel.focus();
+
+      function commitTeam() {
+        const v = sel.value;
+        p.team = v;
+        markUnsaved();
+        span.textContent = v || '—';
+        // Sync panel if open
+        if (selectedIdx === gidx) {
+          const panelInput = document.querySelector('#panel-body [data-key="team"]');
+          if (panelInput) panelInput.value = v;
+          document.getElementById('panel-meta').textContent = `${v||'FA'} · ${p.position} · OVR ${p.overall}`;
+        }
+      }
+
+      sel.addEventListener('change', () => { commitTeam(); });
+      sel.addEventListener('blur',   () => { setTimeout(commitTeam, 100); });
+      sel.addEventListener('keydown', ev => {
+        if (ev.key === 'Escape') { span.textContent = origVal || '—'; }
+      });
+    });
+  });
+
+  // ── INLINE CHIP EDITING: double-click any attribute chip ──
+  tbody.querySelectorAll('.chip[data-attr]').forEach(chip => attachChipEdit(chip));
+
+  // ── INLINE FIELD EDITING: double-click OVR/POT chip or Age/Ht/Wt/Exp cells ──
+  tbody.querySelectorAll('.chip[data-field="overall"]').forEach(chip => {
+    chip.addEventListener('dblclick', e => { e.stopPropagation(); makeFieldInput(chip); });
+  });
+  tbody.querySelectorAll('.chip[data-field="potential"]').forEach(chip => {
+    chip.addEventListener('dblclick', e => { e.stopPropagation(); makeFieldInput(chip); });
+  });
+  const FIELD_CONFIG = {
+    overall:    { min: 40,  max: 99,  label: 'OVR' },
+    potential:  { min: 40,  max: 99,  label: 'POT' },
+    age:        { min: 18,  max: 45,  label: 'Age' },
+    height:     { min: 60,  max: 84,  label: 'Ht'  },
+    weight:     { min: 150, max: 400, label: 'Wt'  },
+    experience: { min: 0,   max: 30,  label: 'Exp' },
+  };
+  tbody.querySelectorAll('.cell-editable[data-field]').forEach(span => {
+    span.addEventListener('dblclick', e => {
+      e.stopPropagation();
+      makeFieldInput(span);
+    });
+  });
+}
+
+function attachChipEdit(chip) {
+  chip.addEventListener('dblclick', function(e) {
+    e.stopPropagation();
+    makeChipInput(chip);
+  });
+}
+
+function makeChipInput(chip) {
+  const gidx = parseInt(chip.dataset.gidx);
+  const attr  = chip.dataset.attr;
+  const p     = players[gidx];
+  const origVal = (p.attributes && p.attributes[attr] != null) ? p.attributes[attr] : null;
+
+  // Use type=text — type=number spinner arrows cause blur before value updates,
+  // making it impossible to increment/decrement without the input closing.
+  // We handle Up/Down keys manually for the same UX without the browser bug.
+  const inp = document.createElement('input');
+  inp.className = 'chip-input';
+  inp.type = 'text';
+  inp.inputMode = 'numeric';
+  inp.value = origVal ?? '';
+  chip.replaceWith(inp);
+  inp.focus(); inp.select();
+
+  function clamp(v) { return Math.max(40, Math.min(99, v)); }
+
+  function commit() {
+    const raw = parseInt(inp.value);
+    const v = inp.value.trim() === '' ? null : clamp(isNaN(raw) ? (origVal ?? 40) : raw);
+    if (!p.attributes) p.attributes = {};
+    if (v === null) delete p.attributes[attr];
+    else p.attributes[attr] = v;
+    markUnsaved();
+
+    const newChip = document.createElement('span');
+    newChip.className = `chip ${chipClass(v)}`;
+    newChip.dataset.gidx = gidx;
+    newChip.dataset.attr = attr;
+    newChip.textContent = v ?? '—';
+    if (inp.parentNode) inp.replaceWith(newChip);
+    attachChipEdit(newChip);
+
+    if (selectedIdx === gidx) {
+      const panelInput = document.querySelector(`#panel-body [data-attrkey="${attr}"]`);
+      if (panelInput) panelInput.value = v ?? '';
+    }
+  }
+
+  function cancel() {
+    const cancelChip = document.createElement('span');
+    cancelChip.className = `chip ${chipClass(origVal)}`;
+    cancelChip.dataset.gidx = gidx;
+    cancelChip.dataset.attr = attr;
+    cancelChip.textContent = origVal ?? '—';
+    if (inp.parentNode) inp.replaceWith(cancelChip);
+    attachChipEdit(cancelChip);
+  }
+
+  inp.addEventListener('blur', commit);
+
+  inp.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter') {
+      ev.preventDefault();
+      inp.blur(); // triggers commit via blur
+    } else if (ev.key === 'Escape') {
+      ev.preventDefault();
+      inp.removeEventListener('blur', commit); // prevent commit on blur
+      cancel();
+    } else if (ev.key === 'ArrowUp') {
+      ev.preventDefault();
+      const cur = parseInt(inp.value);
+      inp.value = clamp(isNaN(cur) ? (origVal ?? 75) : cur + 1);
+    } else if (ev.key === 'ArrowDown') {
+      ev.preventDefault();
+      const cur = parseInt(inp.value);
+      inp.value = clamp(isNaN(cur) ? (origVal ?? 75) : cur - 1);
+    }
+  });
+
+  // Only allow digits
+  inp.addEventListener('input', () => {
+    inp.value = inp.value.replace(/[^0-9]/g, '').slice(0, 2);
+  });
+}
+
+function makeFieldInput(span) {
+  const gidx  = parseInt(span.dataset.gidx);
+  const field  = span.dataset.field;
+  const p      = players[gidx];
+  const origVal = p[field] != null ? p[field] : null;
+
+  const FIELD_CONFIG = {
+    overall:    { min: 40,  max: 99,  maxLen: 2 },
+    potential:  { min: 40,  max: 99,  maxLen: 2 },
+    age:        { min: 18,  max: 45,  maxLen: 2 },
+    height:     { min: 60,  max: 84,  maxLen: 2 },
+    weight:     { min: 150, max: 400, maxLen: 3 },
+    experience: { min: 0,   max: 30,  maxLen: 2 },
+  };
+  const cfg = FIELD_CONFIG[field] || { min: 0, max: 999, maxLen: 3 };
+
+  const inp = document.createElement('input');
+  inp.className = 'chip-input';
+  inp.style.width = cfg.maxLen === 3 ? '46px' : '38px';
+  inp.type = 'text';
+  inp.inputMode = 'numeric';
+  inp.value = origVal ?? '';
+  span.replaceWith(inp);
+  inp.focus(); inp.select();
+
+  function clamp(v) { return Math.max(cfg.min, Math.min(cfg.max, v)); }
+
+  function commit() {
+    const raw = parseInt(inp.value);
+    const v = inp.value.trim() === '' ? null : clamp(isNaN(raw) ? (origVal ?? cfg.min) : raw);
+    if (v === null) delete p[field];
+    else p[field] = v;
+    markUnsaved();
+
+    if (field === 'overall' || field === 'potential') {
+      // OVR/POT rendered as chips — restore as chip with updated color
+      const chipCls = field === 'overall' ? 'chip-ovr' : 'chip-pot';
+      const newChip = document.createElement('span');
+      newChip.className = `chip ${chipClass(v)} ${chipCls}`;
+      newChip.dataset.gidx  = gidx;
+      newChip.dataset.field = field;
+      newChip.textContent = v ?? '—';
+      if (inp.parentNode) inp.replaceWith(newChip);
+      newChip.addEventListener('dblclick', e => { e.stopPropagation(); makeFieldInput(newChip); });
+    } else {
+      const newSpan = document.createElement('span');
+      newSpan.className = 'cell-editable';
+      newSpan.dataset.gidx  = gidx;
+      newSpan.dataset.field = field;
+      newSpan.textContent = v ?? '—';
+      if (inp.parentNode) inp.replaceWith(newSpan);
+      newSpan.addEventListener('dblclick', e => { e.stopPropagation(); makeFieldInput(newSpan); });
+    }
+    // Sync panel if open
+    if (selectedIdx === gidx) {
+      const panelInput = document.querySelector(`#panel-body [data-key="${field}"]`);
+      if (panelInput) panelInput.value = v ?? '';
+    }
+  }
+
+  function cancel() {
+    if (field === 'overall' || field === 'potential') {
+      const chipCls = field === 'overall' ? 'chip-ovr' : 'chip-pot';
+      const cancelChip = document.createElement('span');
+      cancelChip.className = `chip ${chipClass(origVal)} ${chipCls}`;
+      cancelChip.dataset.gidx  = gidx;
+      cancelChip.dataset.field = field;
+      cancelChip.textContent = origVal ?? '—';
+      if (inp.parentNode) inp.replaceWith(cancelChip);
+      cancelChip.addEventListener('dblclick', e => { e.stopPropagation(); makeFieldInput(cancelChip); });
+    } else {
+      const cancelSpan = document.createElement('span');
+      cancelSpan.className = 'cell-editable';
+      cancelSpan.dataset.gidx  = gidx;
+      cancelSpan.dataset.field = field;
+      cancelSpan.textContent = origVal ?? '—';
+      if (inp.parentNode) inp.replaceWith(cancelSpan);
+      cancelSpan.addEventListener('dblclick', e => { e.stopPropagation(); makeFieldInput(cancelSpan); });
+    }
+  }
+
+  inp.addEventListener('blur', commit);
+
+  inp.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter') {
+      ev.preventDefault();
+      inp.blur();
+    } else if (ev.key === 'Escape') {
+      ev.preventDefault();
+      inp.removeEventListener('blur', commit);
+      cancel();
+    } else if (ev.key === 'ArrowUp') {
+      ev.preventDefault();
+      const cur = parseInt(inp.value);
+      inp.value = clamp(isNaN(cur) ? (origVal ?? cfg.min) : cur + 1);
+    } else if (ev.key === 'ArrowDown') {
+      ev.preventDefault();
+      const cur = parseInt(inp.value);
+      inp.value = clamp(isNaN(cur) ? (origVal ?? cfg.min) : cur - 1);
+    }
+  });
+
+  inp.addEventListener('input', () => {
+    inp.value = inp.value.replace(/[^0-9]/g, '').slice(0, cfg.maxLen);
+  });
+}
+
+function ovrClass(v) {
+  if (v >= 90) return 'ovr-elite';
+  if (v >= 85) return 'ovr-probowl';
+  if (v >= 80) return 'ovr-starter';
+  if (v >= 75) return 'ovr-solid';
+  if (v >= 65) return 'ovr-backup';
+  return 'ovr-depth';
+}
+
+function setSort(col) {
+  if (sortCol === col) sortDir = sortDir === 'desc' ? 'asc' : 'desc';
+  else {
+    sortCol = col;
+    sortDir = (col === 'name' || col === 'personalityLabel') ? 'asc' : 'desc';
+  }
+  sortFiltered();
+  renderTable();
+}
+
+// ─────────────────────────────────────────────
+//  PANEL
+// ─────────────────────────────────────────────
+function selectPlayer(globalIdx) {
+  selectedIdx = globalIdx;
+  pendingEdits = {};
+  refreshPanel();
+  renderTable();
+}
+
+function refreshPanel() {
+  if (selectedIdx === null) {
+    showEmptyPanel();
+    return;
+  }
+  const p = players[selectedIdx];
+  document.getElementById('panel-empty').style.display = 'none';
+  document.getElementById('coaching-panel-empty').style.display   = 'none';
+  document.getElementById('coaching-panel-content').style.display = 'none';
+  const pc = document.getElementById('panel-content');
+  pc.style.display = 'flex';
+
+  document.getElementById('panel-name').textContent = `${p.firstName} ${p.lastName}`;
+  document.getElementById('panel-meta').textContent = `${p.team || 'FA'} · ${p.position} · OVR ${p.overall}`;
+
+  let html = '';
+
+  // ── IDENTITY ──
+  html += `<div class="panel-section"><div class="panel-section-title"><span class="section-icon">🪪</span> Identity</div>`;
+  [['firstName','First Name'],['lastName','Last Name'],['college','College']].forEach(([k,l]) => {
+    html += `<div class="panel-field"><label>${l}</label><input type="text" data-key="${k}" value="${p[k]||''}"></div>`;
+  });
+  html += `<div class="panel-field"><label>Team</label><input type="text" data-key="team" value="${p.team||''}"></div>`;
+  html += `<div class="panel-field"><label>Position</label><input type="text" data-key="position" value="${p.position||''}"></div>`;
+  html += `<div class="panel-field"><label>Demographic</label>
+    <select data-key="demographic">
+      <option value="">— auto —</option>
+      ${['black','white','hispanic'].map(d => `<option ${p.demographic===d?'selected':''}>${d}</option>`).join('')}
+    </select></div>`;
+  html += '</div>';
+
+  // ── CORE ──
+  html += `<div class="panel-section"><div class="panel-section-title"><span class="section-icon">📊</span> Core</div>`;
+  html += `<div class="panel-field"><label>Overall</label><input type="number" data-key="overall" value="${p.overall??''}" min="40" max="99"></div>`;
+  html += `<div class="panel-field"><label>Potential</label><input type="number" data-key="potential" value="${p.potential??''}" min="40" max="99" placeholder="—"></div>`;
+  [['age','Age',18,50],['experience','Experience (yrs)',0,30],
+   ['weight','Weight (lbs)',150,400],['height','Height (in)',60,84]].forEach(([k,l,mn,mx]) => {
+    html += `<div class="panel-field"><label>${l}</label><input type="number" data-key="${k}" value="${p[k]??''}" min="${mn}" max="${mx}"></div>`;
+  });
+  html += `<div class="panel-field"><label>Dev Trait</label>
+    <select data-key="developmentTrait">
+      <option value="">— auto —</option>
+      ${['XFactor','Superstar','Normal','Declining'].map(d => `<option ${p.developmentTrait===d?'selected':''}>${d}</option>`).join('')}
+    </select></div>`;
+  html += '</div>';
+
+  // ── DRAFT ──
+  html += `<div class="panel-section"><div class="panel-section-title"><span class="section-icon">🏈</span> Draft</div>`;
+  html += `<div class="panel-field"><label>Draft Round</label><input type="number" data-key="draftRound" value="${p.draftRound??''}" min="1" max="7" placeholder="—"></div>`;
+  html += `<div class="panel-field"><label>Draft Pick</label><input type="number" data-key="draftPick" value="${p.draftPick??''}" min="1" max="262" placeholder="—"></div>`;
+  html += '</div>';
+
+  // ── CONTRACT ──
+  const contract = p.contract || {};
+  html += `<div class="panel-section"><div class="panel-section-title"><span class="section-icon">💰</span> Contract</div>`;
+  html += `<div class="panel-field"><label>Annual Salary ($)</label><input type="number" data-key="contract.annualSalary" value="${contract.annualSalary??''}" min="0" placeholder="auto"></div>`;
+  html += `<div class="panel-field"><label>Years</label><input type="number" data-key="contract.years" value="${contract.years??''}" min="1" max="10" placeholder="auto"></div>`;
+  html += `<div class="panel-field"><label>Signing Bonus ($)</label><input type="number" data-key="contract.signingBonus" value="${contract.signingBonus??''}" min="0" placeholder="auto"></div>`;
+  html += '</div>';
+
+  // ── PERSONALITY ──
+  html += `<div class="panel-section"><div class="panel-section-title"><span class="section-icon">🧠</span> Personality <button class="per-clear-btn" onclick="clearPersonality()" style="margin-left:auto;">✕ Clear All</button></div>`;
+  html += `<div class="panel-field"><label>Label</label>
+    <select data-key="personalityLabel" id="per-label-select">
+      <option value="">— procedural —</option>
+      ${PERSONALITY_LABELS.map(l => `<option ${p.personalityLabel===l?'selected':''}>${l}</option>`).join('')}
+    </select></div>`;
+
+  // hiddenPersonality sliders
+  const hp = p.hiddenPersonality || {};
+  html += `<div style="margin-top:10px; margin-bottom:4px; font-size:9px; color:var(--text3); text-transform:uppercase; letter-spacing:0.1em;">Hidden Traits (1–20)</div>`;
+  HP_TRAITS.forEach(trait => {
+    const val = hp[trait] ?? '';
+    const displayVal = val !== '' ? val : '—';
+    html += `<div class="slider-row" id="hp-row-${trait}">
+      <label>${formatTraitLabel(trait)}</label>
+      <input type="range" min="1" max="20" value="${val||10}"
+        data-hptrait="${trait}"
+        class="${val ? sliderClass(val) : ''}"
+        oninput="onSliderInput(this)"
+        ${!val ? 'style="opacity:0.35"' : ''}>
+      <span class="slider-val" id="hpval-${trait}">${displayVal}</span>
+    </div>`;
+  });
+  html += `<div style="font-size:9px; color:var(--text3); margin-top:4px; font-style:italic;">Dimmed = not set (will be auto-derived from label).<br>Move any slider to lock in a value.</div>`;
+  html += '</div>';
+
+  // ── ATTRIBUTES ──
+  const attrs = POSITION_ATTRS[p.position] || [];
+  const pAttrs = p.attributes || {};
+  if (attrs.length) {
+    html += `<div class="panel-section"><div class="panel-section-title"><span class="section-icon">⚡</span> Attributes</div>`;
+    html += `<div class="attr-note">Range 40–99. Blank = auto-generated from OVR.</div>`;
+    html += `<div class="attr-grid">`;
+    attrs.forEach(a => {
+      html += `<div class="attr-item">
+        <label title="${a}">${a}</label>
+        <input type="number" data-attrkey="${a}" value="${pAttrs[a]??''}" min="40" max="99" placeholder="—">
+      </div>`;
+    });
+    html += '</div></div>';
+  }
+
+  document.getElementById('panel-body').innerHTML = html;
+
+  // Attach change listeners
+  document.querySelectorAll('#panel-body [data-key]').forEach(el => {
+    el.addEventListener('change', onPanelFieldChange);
+    el.addEventListener('input', onPanelFieldChange);
+  });
+  document.querySelectorAll('#panel-body [data-attrkey]').forEach(el => {
+    el.addEventListener('change', onAttrFieldChange);
+  });
+  document.querySelectorAll('#panel-body [data-hptrait]').forEach(el => {
+    el.addEventListener('change', onSliderChange);
+  });
+}
+
+function formatTraitLabel(t) {
+  return t.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
+}
+
+function sliderClass(v) {
+  v = parseInt(v);
+  if (v >= 15) return 'slider-high';
+  if (v <= 6)  return 'slider-low';
+  return '';
+}
+
+function onSliderInput(el) {
+  const trait = el.dataset.hptrait;
+  const val = parseInt(el.value);
+  el.className = 'slider-' + (val >= 15 ? 'high' : val <= 6 ? 'low' : '');
+  el.style.opacity = '1';
+  document.getElementById('hpval-' + trait).textContent = val;
+  // mark as pending
+  if (!pendingEdits.hiddenPersonality) pendingEdits.hiddenPersonality = {};
+  pendingEdits.hiddenPersonality[trait] = val;
+  markUnsaved();
+}
+
+function onSliderChange(el) {
+  onSliderInput(el);
+}
+
+function onPanelFieldChange(e) {
+  const el = e.target;
+  const key = el.dataset.key;
+  const val = el.type === 'number' ? (el.value === '' ? null : parseFloat(el.value)) : el.value;
+  pendingEdits[key] = val;
+  markUnsaved();
+}
+
+function onAttrFieldChange(e) {
+  const el = e.target;
+  const key = el.dataset.attrkey;
+  const val = el.value === '' ? null : parseInt(el.value);
+  if (!pendingEdits.attributes) pendingEdits.attributes = {};
+  pendingEdits.attributes[key] = val;
+  markUnsaved();
+}
+
+function clearPersonality() {
+  // Reset both label and hidden personality to unset
+  const sel = document.getElementById('per-label-select');
+  if (sel) sel.value = '';
+  HP_TRAITS.forEach(trait => {
+    const slider = document.querySelector(`[data-hptrait="${trait}"]`);
+    const valEl  = document.getElementById('hpval-' + trait);
+    if (slider) { slider.value = 10; slider.className = ''; slider.style.opacity = '0.35'; }
+    if (valEl)  valEl.textContent = '—';
+  });
+  pendingEdits['personalityLabel'] = '';
+  pendingEdits['hiddenPersonality'] = null; // signal to delete
+  markUnsaved();
+  toast('Personality cleared — will be procedurally generated');
+}
+
+function savePanel() {
+  if (selectedIdx === null) return;
+  const p = players[selectedIdx];
+
+  // Apply flat field edits
+  for (const [key, val] of Object.entries(pendingEdits)) {
+    if (key === 'attributes' || key === 'hiddenPersonality') continue;
+    if (key.startsWith('contract.')) {
+      const subkey = key.split('.')[1];
+      if (!p.contract) p.contract = {};
+      if (val === null || val === '') delete p.contract[subkey];
+      else p.contract[subkey] = val;
+      continue;
+    }
+    if (val === null || val === '') {
+      // For numeric optional fields, delete key vs set to null
+      if (['draftRound','draftPick','potential'].includes(key)) delete p[key];
+      else if (val === '') delete p[key];
+      else p[key] = val;
+    } else {
+      p[key] = val;
+    }
+  }
+
+  // personalityLabel special handling
+  if ('personalityLabel' in pendingEdits) {
+    if (!pendingEdits.personalityLabel) delete p.personalityLabel;
+    else p.personalityLabel = pendingEdits.personalityLabel;
+  }
+
+  // hiddenPersonality special handling
+  if ('hiddenPersonality' in pendingEdits) {
+    if (pendingEdits.hiddenPersonality === null) {
+      delete p.hiddenPersonality;
+    } else {
+      if (!p.hiddenPersonality) p.hiddenPersonality = {};
+      Object.assign(p.hiddenPersonality, pendingEdits.hiddenPersonality);
+    }
+  } else if (pendingEdits.hiddenPersonality && typeof pendingEdits.hiddenPersonality === 'object') {
+    if (!p.hiddenPersonality) p.hiddenPersonality = {};
+    Object.assign(p.hiddenPersonality, pendingEdits.hiddenPersonality);
+  }
+
+  // Attribute edits
+  if (pendingEdits.attributes) {
+    if (!p.attributes) p.attributes = {};
+    for (const [ak, av] of Object.entries(pendingEdits.attributes)) {
+      if (av === null) delete p.attributes[ak];
+      else p.attributes[ak] = av;
+    }
+    if (!Object.keys(p.attributes).length) delete p.attributes;
+  }
+
+  pendingEdits = {};
+  markUnsaved();
+  refreshPanel();
+  renderTable();
+  document.getElementById('panel-meta').textContent = `${p.team||'FA'} · ${p.position} · OVR ${p.overall}`;
+  toast('Player saved');
+}
+
+function discardChanges() {
+  pendingEdits = {};
+  refreshPanel();
+}
+
+function showEmptyPanel() {
+  document.getElementById('panel-empty').style.display = 'flex';
+  document.getElementById('panel-content').style.display = 'none';
+}
+
+function markUnsaved() {
+  document.getElementById('unsaved-dot').style.display = 'block';
+}
+
+function onSearchInput() {
+  const val = document.getElementById('search').value;
+  document.getElementById('search-clear').style.display = val ? 'block' : 'none';
+  applyFilters();
+}
+
+function clearSearch() {
+  document.getElementById('search').value = '';
+  document.getElementById('search-clear').style.display = 'none';
+  applyFilters();
+  document.getElementById('search').focus();
+}
+
+function saveInPlace() {
+  if (!rosterData) { toast('No roster loaded', true); return; }
+  rosterData.meta = rosterData.meta || {};
+  rosterData.meta.updatedAt = Date.now();
+  // Clean null/empty optional fields in place
+  rosterData.players = rosterData.players.map(p => {
+    if (p.potential === null) delete p.potential;
+    if (p.draftRound === null) delete p.draftRound;
+    if (p.draftPick  === null) delete p.draftPick;
+    if (p.contract && !Object.keys(p.contract).length) delete p.contract;
+    if (p.hiddenPersonality && !Object.keys(p.hiddenPersonality).length) delete p.hiddenPersonality;
+    return p;
+  });
+  players = rosterData.players;
+  document.getElementById('unsaved-dot').style.display = 'none';
+  const status = document.getElementById('file-status');
+  const currentText = status.textContent.replace(/ · unsaved changes$/, '');
+  status.textContent = currentText;
+  toast('Changes committed — Export JSON to download');
+}
+
+// ─────────────────────────────────────────────
+//  EXPORT
+// ─────────────────────────────────────────────
+async function exportJSON() {
+  if (!rosterData) { toast('No roster loaded', true); return; }
+  const out = JSON.parse(JSON.stringify(rosterData));
+  // Clean null/empty fields
+  out.players = out.players.map(p => {
+    if (p.potential === null) delete p.potential;
+    if (p.draftRound === null) delete p.draftRound;
+    if (p.draftPick  === null) delete p.draftPick;
+    if (p.contract && !Object.keys(p.contract).length) delete p.contract;
+    if (p.hiddenPersonality && !Object.keys(p.hiddenPersonality).length) delete p.hiddenPersonality;
+    return p;
+  });
+  out.meta = out.meta || {};
+  out.meta.updatedAt = Date.now();
+
+  const json = JSON.stringify(out, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+
+  // Derive a sensible default filename from the loaded file or roster name
+  const rosterName = (out.meta && out.meta.name) ? out.meta.name.replace(/[^a-zA-Z0-9_\- ]/g, '') : '';
+  const defaultName = rosterName ? `${rosterName}.json` : 'WarRoom_Roster.json';
+
+  // Use File System Access API if available (Chrome/Edge) — lets user pick location & name
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: defaultName,
+        types: [{ description: 'JSON File', accept: { 'application/json': ['.json'] } }],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      document.getElementById('unsaved-dot').style.display = 'none';
+      toast(`Exported ${handle.name}`);
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return; // user cancelled — do nothing
+      // Fall through to legacy download on any other error
+    }
+  }
+
+  // Fallback: auto-download to default Downloads folder
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href = url; a.download = defaultName; a.click();
+  URL.revokeObjectURL(url);
+  document.getElementById('unsaved-dot').style.display = 'none';
+  toast(`Exported ${defaultName}`);
+}
+
+// ─────────────────────────────────────────────
+//  TOAST
+// ─────────────────────────────────────────────
+let _toastTimer;
+// ─────────────────────────────────────────────
+//  MODE SWITCH
+// ─────────────────────────────────────────────
+let currentMode = 'players'; // 'players' | 'coaches'
+
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('mode-players').classList.toggle('active', mode === 'players');
+  document.getElementById('mode-coaches').classList.toggle('active', mode === 'coaches');
+
+  // Grid visibility
+  document.getElementById('grid-wrap').style.display    = mode === 'players' ? '' : 'none';
+  document.getElementById('coaching-wrap').classList.toggle('visible', mode === 'coaches');
+
+  // Toolbar visibility
+  document.getElementById('player-toolbar-controls').style.display  = mode === 'players' ? 'flex' : 'none';
+  document.getElementById('coach-toolbar-controls').classList.toggle('visible', mode === 'coaches');
+
+  // Panel reset
+  if (mode === 'coaches') {
+    showPlayerPanel(false);
+    showCoachPanel(false);
+    if (rosterData) applyCoachFilters();
+  } else {
+    showCoachPanel(false);
+    showPlayerPanel(false);
+  }
+}
+
+function showPlayerPanel(show) {
+  document.getElementById('panel-empty').style.display         = (!show) ? 'flex' : 'none';
+  document.getElementById('panel-content').style.display       = show    ? 'flex' : 'none';
+  document.getElementById('coaching-panel-empty').style.display   = 'none';
+  document.getElementById('coaching-panel-content').style.display = 'none';
+}
+
+function showCoachPanel(show) {
+  document.getElementById('coaching-panel-empty').style.display   = (!show) ? 'flex' : 'none';
+  document.getElementById('coaching-panel-content').style.display = show    ? 'flex' : 'none';
+  document.getElementById('panel-empty').style.display         = 'none';
+  document.getElementById('panel-content').style.display       = 'none';
+}
+
+// ─────────────────────────────────────────────
+//  COACHING DATA
+// ─────────────────────────────────────────────
+const OFF_SCHEMES = [
+  'WestCoastTiming','OutsideZoneRun','AirRaidSpread','PowerRunGap',
+  'RPOSpreadOption','VerticalDownfield'
+];
+const DEF_SCHEMES = [
+  'Tampa2Cover2Zone','Cover3Quarters','PressManCover1','BlitzHeavyFireZone',
+  'ThreeFourTwoGap','BendDontBreak'
+];
+const LEADERSHIP_TRAITS = [
+  'Disciplinarian','PlayerDeveloper','OffensiveInnovator','DefensiveArchitect',
+  'MotivationalSpeaker','GameManager','AggressivePlaycaller','ConservativeStrategist'
+];
+const DEMOGRAPHICS = ['white','black','hispanic','asian','other'];
+
+const COACH_DEV_TRAITS = ['xfactor','superstar','normal','declining'];
+
+// Role-specific coaching attribute definitions
+const COACH_ATTRS = {
+  headCoach: [
+    { key: 'gameManagement',    label: 'Game Mgmt',    tip: 'Clock management, timeouts, challenges' },
+    { key: 'playCalling',       label: 'Play Calling',  tip: 'In-game situational play selection' },
+    { key: 'playerDevelopment', label: 'Player Dev',    tip: 'XP gain multiplier for coached players' },
+    { key: 'leadership',        label: 'Leadership',    tip: 'Locker room chemistry and morale' },
+    { key: 'discipline',        label: 'Discipline',    tip: 'Penalty rate and practice performance' },
+    { key: 'adaptability',      label: 'Adaptability',  tip: 'Mid-game scheme adjustment effectiveness' },
+  ],
+  offensiveCoordinator: [
+    { key: 'passGameDesign',    label: 'Pass Design',   tip: 'Pass play efficacy and route concept quality' },
+    { key: 'runGameDesign',     label: 'Run Design',    tip: 'Run scheme effectiveness' },
+    { key: 'redZoneOffense',    label: 'RZ Offense',    tip: 'TD% inside the 20' },
+    { key: 'thirdDownOffense',  label: '3rd Down Off',  tip: '3rd down conversion rate modifier' },
+    { key: 'tempo',             label: 'Tempo',         tip: 'Pace of play and hurry-up capability' },
+    { key: 'situationalCalls',  label: 'Situational',   tip: '2-pt attempts, screens, trick plays' },
+  ],
+  defensiveCoordinator: [
+    { key: 'passCoverageDesign',label: 'Pass Cov',      tip: 'Coverage shell effectiveness' },
+    { key: 'runDefenseDesign',  label: 'Run Defense',   tip: 'Gap discipline and run fits' },
+    { key: 'passRushDesign',    label: 'Pass Rush',     tip: 'Stunt/twist packages and blitz design' },
+    { key: 'redZoneDefense',    label: 'RZ Defense',    tip: 'Points allowed inside the 20' },
+    { key: 'thirdDownDefense',  label: '3rd Down Def',  tip: 'Stop rate on 3rd down' },
+    { key: 'turnoverGeneration',label: 'Turnover Gen',  tip: 'Forced fumble and INT tendency' },
+  ],
+};
+
+// Flattened coach list: [{team, role, coach obj ref}]
+let coachFlat = [];
+let coachFiltered = [];
+let coachSortCol = 'team';
+let coachSortDir = 'asc';
+let selectedCoach = null; // {team, role}
+let pendingCoachEdits = {};
+
+function buildCoachFlat() {
+  coachFlat = [];
+  if (!rosterData || !rosterData.coaching) return;
+  const ROLES = ['headCoach','offensiveCoordinator','defensiveCoordinator'];
+  Object.keys(rosterData.coaching).sort().forEach(team => {
+    const td = rosterData.coaching[team];
+    ROLES.forEach(role => {
+      const c = td[role];
+      if (!c || !c.firstName) return;
+      coachFlat.push({ team, role, data: c, teamData: td });
+    });
+  });
+}
+
+function buildCoachFilters() {
+  const teams = [...new Set(coachFlat.map(c => c.team))].sort();
+
+  const cfTeam = document.getElementById('cf-team');
+  const prevTeam = cfTeam.value;
+  cfTeam.innerHTML = '<option value="">All Teams</option>' + teams.map(t => `<option${prevTeam===t?' selected':''}>${t}</option>`).join('');
+
+  const cfOs = document.getElementById('cf-oscheme');
+  const prevOs = cfOs.value;
+  cfOs.innerHTML = '<option value="">All Off. Schemes</option>' + OFF_SCHEMES.map(s => `<option${prevOs===s?' selected':''}>${s}</option>`).join('');
+
+  const cfDs = document.getElementById('cf-dscheme');
+  const prevDs = cfDs.value;
+  cfDs.innerHTML = '<option value="">All Def. Schemes</option>' + DEF_SCHEMES.map(s => `<option${prevDs===s?' selected':''}>${s}</option>`).join('');
+}
+
+function applyCoachFilters() {
+  if (!rosterData) return;
+  const q     = (document.getElementById('coach-search').value || '').toLowerCase();
+  const team  = document.getElementById('cf-team').value;
+  const role  = document.getElementById('cf-role').value;
+  const osch  = document.getElementById('cf-oscheme').value;
+  const dsch  = document.getElementById('cf-dscheme').value;
+
+  // Reset sort if active col belongs to a role-specific view that's no longer showing
+  if (coachSortCol.startsWith('coachAttr:')) {
+    const attrKey   = coachSortCol.slice(10);
+    const validKeys = role ? (COACH_ATTRS[role] || []).map(a => a.key) : [];
+    if (!validKeys.includes(attrKey)) { coachSortCol = 'overall'; coachSortDir = 'desc'; }
+  }
+  // HC-only trailing cols (leadershipTrait visible in all views, agg/rb only when no role or HC)
+  if ((coachSortCol === 'demographic') && role && role !== '') {
+    coachSortCol = 'overall'; coachSortDir = 'desc';
+  }
+
+  coachFiltered = coachFlat.filter(c => {
+    const name = `${c.data.firstName} ${c.data.lastName}`.toLowerCase();
+    if (q && !name.includes(q) && !c.team.toLowerCase().includes(q)) return false;
+    if (team && c.team !== team) return false;
+    if (role && c.role !== role) return false;
+    if (osch) {
+      const s = c.role === 'offensiveCoordinator' ? c.data.offensiveScheme : c.role === 'headCoach' ? c.teamData.offensiveScheme : null;
+      if (s !== osch) return false;
+    }
+    if (dsch) {
+      const s = c.role === 'defensiveCoordinator' ? c.data.defensiveScheme : c.role === 'headCoach' ? c.teamData.defensiveScheme : null;
+      if (s !== dsch) return false;
+    }
+    return true;
+  });
+
+  sortCoachFiltered();
+  renderCoachingTable();
+  document.getElementById('coaching-count').textContent = coachFiltered.length + ' coaches';
+}
+
+function sortCoachFiltered() {
+  coachFiltered.sort((a, b) => {
+    let av, bv;
+    const col = coachSortCol;
+    if (col === 'name') {
+      av = `${a.data.firstName} ${a.data.lastName}`;
+      bv = `${b.data.firstName} ${b.data.lastName}`;
+    } else if (col === 'team')    { av = a.team; bv = b.team; }
+    else if (col === 'role')      { av = a.role; bv = b.role; }
+    else if (col === 'overall')   { av = a.data.overall ?? -1; bv = b.data.overall ?? -1; }
+    else if (col === 'devTrait')  { av = a.data.devTrait || ''; bv = b.data.devTrait || ''; }
+    else if (col === 'age')       { av = a.data.age ?? -1; bv = b.data.age ?? -1; }
+    else if (col === 'experience'){ av = a.data.experience ?? -1; bv = b.data.experience ?? -1; }
+    else if (col === 'scheme')    {
+      av = a.data.offensiveScheme || a.data.defensiveScheme || a.teamData.offensiveScheme || '';
+      bv = b.data.offensiveScheme || b.data.defensiveScheme || b.teamData.offensiveScheme || '';
+    }
+    else if (col === 'aggressiveness') { av = a.teamData.aggressiveness ?? -1; bv = b.teamData.aggressiveness ?? -1; }
+    else if (col === 'rbWorkload')     { av = a.teamData.rbWorkload ?? -1;     bv = b.teamData.rbWorkload ?? -1; }
+    else if (col === 'leadershipTrait'){ av = a.teamData.leadershipTrait || ''; bv = b.teamData.leadershipTrait || ''; }
+    else if (col === 'demographic')    { av = a.data.demographic || ''; bv = b.data.demographic || ''; }
+    else if (col.startsWith('coachAttr:')) {
+      const attrKey = col.slice(10);
+      av = a.data[attrKey] ?? -1;
+      bv = b.data[attrKey] ?? -1;
+    }
+    else { av = ''; bv = ''; }
+    let cmp = 0;
+    if (typeof av === 'number' && typeof bv === 'number') cmp = av - bv;
+    else cmp = String(av).localeCompare(String(bv));
+    return coachSortDir === 'desc' ? -cmp : cmp;
+  });
+}
+
+function setCoachSort(col) {
+  if (coachSortCol === col) coachSortDir = coachSortDir === 'desc' ? 'asc' : 'desc';
+  else { coachSortCol = col; coachSortDir = col === 'overall' ? 'desc' : 'asc'; }
+  sortCoachFiltered();
+  renderCoachingTable();
+}
+
+function coachRoleLabel(role) {
+  if (role === 'headCoach') return 'HC';
+  if (role === 'offensiveCoordinator') return 'OC';
+  if (role === 'defensiveCoordinator') return 'DC';
+  return role;
+}
+
+function coachSchemeDisplay(c) {
+  if (c.role === 'offensiveCoordinator') return c.data.offensiveScheme || c.teamData.offensiveScheme || '—';
+  if (c.role === 'defensiveCoordinator') return c.data.defensiveScheme || c.teamData.defensiveScheme || '—';
+  return (c.teamData.offensiveScheme || '—') + ' / ' + (c.teamData.defensiveScheme || '—');
+}
+
+function coachSchemeCls(c) {
+  if (c.role === 'offensiveCoordinator') return 'scheme-off';
+  if (c.role === 'defensiveCoordinator') return 'scheme-def';
+  return 'scheme-team';
+}
+
+function renderCoachingTable() {
+  const roleFilter = document.getElementById('cf-role').value;
+  const attrDefs   = roleFilter ? (COACH_ATTRS[roleFilter] || []) : [];
+  const showAttrs  = roleFilter && attrDefs.length > 0;
+
+  const BASE_COLS = [
+    { key:'team',       label:'Team',   cls:'cc-team',   sortable:true  },
+    { key:'role',       label:'Role',   cls:'cc-role',   sortable:true  },
+    { key:'name',       label:'Name',   cls:'cc-name',   sortable:true  },
+    { key:'overall',    label:'OVR',    cls:'cc-ovr',    sortable:true  },
+    { key:'devTrait',   label:'Dev',    cls:'cc-dev',    sortable:true  },
+    { key:'age',        label:'Age',    cls:'cc-age',    sortable:true  },
+    { key:'experience', label:'Exp',    cls:'cc-exp',    sortable:true  },
+    { key:'scheme',     label:'Scheme', cls:'cc-scheme', sortable:true  },
+  ];
+
+  const TAIL_COLS = showAttrs
+    ? [
+        ...attrDefs.map(a => ({ key:'coachAttr:'+a.key, label:a.label, cls:'cc-attr', sortable:true, tip:a.tip })),
+        ...(roleFilter === 'headCoach' ? [
+          { key:'leadershipTrait', label:'Leadership', cls:'cc-trait', sortable:true  },
+          { key:'aggressiveness',  label:'Agg',        cls:'cc-agg',   sortable:true  },
+          { key:'rbWorkload',      label:'RB Wk',      cls:'cc-rb',    sortable:true  },
+        ] : []),
+      ]
+    : [
+        { key:'leadershipTrait', label:'Leadership', cls:'cc-trait', sortable:true  },
+        { key:'aggressiveness',  label:'Agg',        cls:'cc-agg',   sortable:true  },
+        { key:'rbWorkload',      label:'RB Wk',      cls:'cc-rb',    sortable:true  },
+        { key:'demographic',     label:'Demo',       cls:'cc-dem',   sortable:true  },
+      ];
+
+  const COLS = [...BASE_COLS, ...TAIL_COLS];
+
+  // ── THEAD ──
+  const thead = document.getElementById('coaching-thead');
+  thead.innerHTML = '';
+  const tr = document.createElement('tr');
+  COLS.forEach(col => {
+    const th = document.createElement('th');
+    const isActive = coachSortCol === col.key;
+    th.className = col.cls + (isActive ? ' sort-active ' + (coachSortDir==='desc'?'sort-desc':'sort-asc') : '');
+    th.textContent = col.label;
+    if (col.tip) th.title = col.tip;
+    if (col.sortable) th.onclick = () => setCoachSort(col.key);
+    tr.appendChild(th);
+  });
+  thead.appendChild(tr);
+
+  // ── TBODY ──
+  const tbody = document.getElementById('coaching-tbody');
+  if (!coachFiltered.length) {
+    tbody.innerHTML = `<tr class="no-data"><td colspan="${COLS.length}">No coaches match the current filters.</td></tr>`;
+    return;
+  }
+
+  const rows = coachFiltered.map(c => {
+    const isSelected = selectedCoach && selectedCoach.team === c.team && selectedCoach.role === c.role;
+    const roleLbl   = coachRoleLabel(c.role);
+    const scheme    = coachSchemeDisplay(c);
+    const schemeCls = coachSchemeCls(c);
+    const ovrCls    = chipClass(c.data.overall);
+    const ovrDisp   = c.data.overall ?? '—';
+
+    const devRaw  = c.data.devTrait || '';
+    const devDisp = devRaw
+      ? `<span class="dev-badge dev-${devRaw.toLowerCase()}">${devRaw}</span>`
+      : `<span style="color:var(--text3)">—</span>`;
+
+    let tailCells = '';
+    if (showAttrs) {
+      attrDefs.forEach(a => {
+        const v = c.data[a.key] ?? null;
+        tailCells += `<td class="cc-attr"><span class="chip ${chipClass(v)} coach-attr-chip" data-team="${c.team}" data-role="${c.role}" data-attrkey="${a.key}" title="Dbl-click to edit">${v ?? '—'}</span></td>`;
+      });
+      // HC filter: also show Leadership, Agg, RB Wk after attrs
+      if (roleFilter === 'headCoach') {
+        const trait = c.teamData.leadershipTrait || '';
+        const traitCell = `<span class="trait-editable-coach" data-team="${c.team}" data-role="${c.role}" style="cursor:pointer" title="Click to change">${trait ? `<span class="trait-badge">${trait}</span>` : `<span style="color:var(--text3);font-size:10px;">—</span>`}</span>`;
+        const aggVal = c.teamData.aggressiveness ?? null;
+        const rbVal  = c.teamData.rbWorkload ?? null;
+        const aggCell = `<span class="coach-td-editable" data-team="${c.team}" data-role="${c.role}" data-tdfield="aggressiveness" title="Dbl-click to edit" style="cursor:text">${aggVal !== null ? `<div class="meter-cell"><div class="meter-bar"><div class="meter-fill meter-agg" style="width:${aggVal*10}%"></div></div><span class="meter-num">${aggVal}</span></div>` : `<span style="color:var(--text3);font-size:10px;">—</span>`}</span>`;
+        const rbCell  = `<span class="coach-td-editable" data-team="${c.team}" data-role="${c.role}" data-tdfield="rbWorkload" title="Dbl-click to edit" style="cursor:text">${rbVal !== null ? `<div class="meter-cell"><div class="meter-bar"><div class="meter-fill meter-rb" style="width:${rbVal*10}%"></div></div><span class="meter-num">${rbVal}</span></div>` : `<span style="color:var(--text3);font-size:10px;">—</span>`}</span>`;
+        tailCells += `<td class="cc-trait">${traitCell}</td>`;
+        tailCells += `<td class="cc-agg">${aggCell}</td>`;
+        tailCells += `<td class="cc-rb">${rbCell}</td>`;
+      }
+    } else {
+      const trait  = (c.role === 'headCoach') ? (c.teamData.leadershipTrait || '') : null;
+      const traitCell = c.role === 'headCoach'
+        ? `<span class="trait-editable-coach" data-team="${c.team}" data-role="${c.role}" style="cursor:pointer" title="Click to change">${trait ? `<span class="trait-badge">${trait}</span>` : `<span style="color:var(--text3);font-size:10px;">—</span>`}</span>`
+        : `<span style="color:var(--text3);font-size:10px;">—</span>`;
+      const dem = c.data.demographic || '';
+      const demCell = `<span class="dem-editable-coach" data-team="${c.team}" data-role="${c.role}" style="cursor:pointer;font-size:10px;" title="Click to change">${dem || `<span style="color:var(--text3)">—</span>`}</span>`;
+      const aggVal = (c.role === 'headCoach') ? (c.teamData.aggressiveness ?? null) : null;
+      const rbVal  = (c.role === 'headCoach') ? (c.teamData.rbWorkload ?? null) : null;
+      const aggCell = c.role === 'headCoach'
+        ? `<span class="coach-td-editable" data-team="${c.team}" data-role="${c.role}" data-tdfield="aggressiveness" title="Dbl-click to edit" style="cursor:text">${aggVal !== null ? `<div class="meter-cell"><div class="meter-bar"><div class="meter-fill meter-agg" style="width:${aggVal*10}%"></div></div><span class="meter-num">${aggVal}</span></div>` : `<span style="color:var(--text3);font-size:10px;">—</span>`}</span>`
+        : `<span style="color:var(--text3);font-size:10px;">—</span>`;
+      const rbCell  = c.role === 'headCoach'
+        ? `<span class="coach-td-editable" data-team="${c.team}" data-role="${c.role}" data-tdfield="rbWorkload" title="Dbl-click to edit" style="cursor:text">${rbVal !== null ? `<div class="meter-cell"><div class="meter-bar"><div class="meter-fill meter-rb" style="width:${rbVal*10}%"></div></div><span class="meter-num">${rbVal}</span></div>` : `<span style="color:var(--text3);font-size:10px;">—</span>`}</span>`
+        : `<span style="color:var(--text3);font-size:10px;">—</span>`;
+      tailCells += `<td class="cc-trait">${traitCell}</td>`;
+      tailCells += `<td class="cc-agg">${aggCell}</td>`;
+      tailCells += `<td class="cc-rb">${rbCell}</td>`;
+      tailCells += `<td class="cc-dem">${demCell}</td>`;
+    }
+
+    return `<tr data-team="${c.team}" data-role="${c.role}" class="${isSelected?'selected':''}">
+      <td class="cc-team" style="font-weight:600;color:var(--text)">${c.team}</td>
+      <td class="cc-role"><span class="role-badge role-${roleLbl}">${roleLbl}</span></td>
+      <td class="cc-name">${c.data.firstName} ${c.data.lastName}</td>
+      <td class="cc-ovr"><span class="chip ${ovrCls} chip-ovr" data-team="${c.team}" data-role="${c.role}" data-coachfield="overall">${ovrDisp}</span></td>
+      <td class="cc-dev"><span class="dev-editable-coach" data-team="${c.team}" data-role="${c.role}" style="cursor:pointer" title="Click to change">${devDisp}</span></td>
+      <td class="cc-age"><span class="coach-cell-editable" data-team="${c.team}" data-role="${c.role}" data-coachfield="age">${c.data.age ?? '—'}</span></td>
+      <td class="cc-exp"><span class="coach-cell-editable" data-team="${c.team}" data-role="${c.role}" data-coachfield="experience">${c.data.experience ?? '—'}</span></td>
+      <td class="cc-scheme"><span class="scheme-badge ${schemeCls}" style="cursor:pointer" data-team="${c.team}" data-role="${c.role}" title="Click to change">${scheme}</span></td>
+      ${tailCells}
+    </tr>`;
+  }).join('');
+
+  tbody.innerHTML = rows;
+
+  // ── ROW CLICK → open panel ──
+  tbody.querySelectorAll('tr[data-team]').forEach(tr => {
+    tr.addEventListener('click', e => {
+      if (e.target.classList.contains('chip') && e.target.dataset.coachfield) return;
+      if (e.target.classList.contains('coach-attr-chip')) return;
+      if (e.target.classList.contains('coach-cell-editable')) return;
+      if (e.target.classList.contains('coach-td-editable') || e.target.closest('.coach-td-editable')) return;
+      if (e.target.classList.contains('scheme-badge')) return;
+      if (e.target.classList.contains('dev-editable-coach') || e.target.closest('.dev-editable-coach')) return;
+      if (e.target.classList.contains('trait-editable-coach') || e.target.closest('.trait-editable-coach')) return;
+      if (e.target.classList.contains('dem-editable-coach') || e.target.closest('.dem-editable-coach')) return;
+      selectCoach(tr.dataset.team, tr.dataset.role);
+    });
+  });
+
+  // ── INLINE OVR chip dblclick ──
+  tbody.querySelectorAll('.chip[data-coachfield="overall"]').forEach(chip => {
+    chip.addEventListener('dblclick', e => { e.stopPropagation(); makeCoachChipInput(chip); });
+  });
+
+  // ── INLINE AGE/EXP dblclick ──
+  tbody.querySelectorAll('.coach-cell-editable').forEach(span => {
+    span.style.cursor = 'text';
+    span.title = 'Double-click to edit';
+    span.addEventListener('dblclick', e => { e.stopPropagation(); makeCoachFieldInput(span); });
+  });
+
+  // ── INLINE SCHEME click ──
+  tbody.querySelectorAll('.scheme-badge[data-team]').forEach(span => {
+    span.addEventListener('click', e => { e.stopPropagation(); makeCoachSchemeSelect(span); });
+  });
+
+  // ── INLINE DEV TRAIT click ──
+  tbody.querySelectorAll('.dev-editable-coach').forEach(span => {
+    span.addEventListener('click', e => {
+      e.stopPropagation();
+      if (span.querySelector('select')) return;
+      const team = span.dataset.team, role = span.dataset.role;
+      const c = rosterData.coaching[team][role];
+      const origVal = c.devTrait || '';
+      const sel = document.createElement('select');
+      sel.style.cssText = 'background:var(--bg3);border:1px solid var(--accent);color:var(--text);font-family:var(--font);font-size:10px;border-radius:3px;padding:1px 2px;outline:none;width:80px;';
+      sel.innerHTML = '<option value="">— auto —</option>' + COACH_DEV_TRAITS.map(d => `<option value="${d}"${origVal===d?' selected':''}>${d}</option>`).join('');
+      span.innerHTML = ''; span.appendChild(sel); sel.focus();
+      function commitDev() {
+        const v = sel.value;
+        if (v) c.devTrait = v; else delete c.devTrait;
+        markUnsaved();
+        const badge = v ? `<span class="dev-badge dev-${v}">${v}</span>` : `<span style="color:var(--text3)">—</span>`;
+        span.innerHTML = badge;
+        if (selectedCoach && selectedCoach.team===team && selectedCoach.role===role) refreshCoachPanel();
+      }
+      sel.addEventListener('change', commitDev);
+      sel.addEventListener('blur',   () => setTimeout(commitDev, 100));
+      sel.addEventListener('keydown', ev => { if(ev.key==='Escape'){ const badge = origVal ? `<span class="dev-badge dev-${origVal}">${origVal}</span>` : `<span style="color:var(--text3)">—</span>`; span.innerHTML = badge; } });
+    });
+  });
+
+  // ── INLINE COACH ATTRIBUTE CHIP dblclick ──
+  tbody.querySelectorAll('.coach-attr-chip').forEach(chip => {
+    chip.addEventListener('dblclick', e => { e.stopPropagation(); makeCoachAttrChipInput(chip); });
+  });
+
+  // ── INLINE AGG / RB WK dblclick (HC teamData fields) ──
+  tbody.querySelectorAll('.coach-td-editable').forEach(span => {
+    span.addEventListener('dblclick', e => {
+      e.stopPropagation();
+      if (span.querySelector('input')) return;
+      const team    = span.dataset.team;
+      const role    = span.dataset.role;
+      const field   = span.dataset.tdfield;
+      const td      = rosterData.coaching[team];
+      const origVal = td[field] ?? null;
+
+      const inp = document.createElement('input');
+      inp.className   = 'chip-input';
+      inp.style.width = '38px';
+      inp.type        = 'text';
+      inp.inputMode   = 'numeric';
+      inp.value       = origVal ?? '';
+      span.innerHTML  = '';
+      span.appendChild(inp);
+      inp.focus(); inp.select();
+
+      function clamp(v) { return Math.max(1, Math.min(10, v)); }
+
+      function makeMeter(v, fieldKey) {
+        const cls = fieldKey === 'aggressiveness' ? 'meter-agg' : 'meter-rb';
+        return `<div class="meter-cell"><div class="meter-bar"><div class="meter-fill ${cls}" style="width:${v*10}%"></div></div><span class="meter-num">${v}</span></div>`;
+      }
+
+      function commit() {
+        const raw = parseInt(inp.value);
+        const v   = inp.value.trim() === '' ? null : clamp(isNaN(raw) ? (origVal ?? 5) : raw);
+        if (v === null) delete td[field]; else td[field] = v;
+        markUnsaved();
+        span.innerHTML = v !== null ? makeMeter(v, field) : `<span style="color:var(--text3);font-size:10px;">—</span>`;
+        if (selectedCoach && selectedCoach.team === team && selectedCoach.role === role) refreshCoachPanel();
+      }
+
+      function cancelEdit() {
+        span.innerHTML = origVal !== null ? makeMeter(origVal, field) : `<span style="color:var(--text3);font-size:10px;">—</span>`;
+      }
+
+      inp.addEventListener('blur', commit);
+      inp.addEventListener('keydown', ev => {
+        if (ev.key === 'Enter')      { ev.preventDefault(); inp.blur(); }
+        else if (ev.key === 'Escape'){ ev.preventDefault(); inp.removeEventListener('blur', commit); cancelEdit(); }
+        else if (ev.key === 'ArrowUp')   { ev.preventDefault(); inp.value = clamp((parseInt(inp.value)||origVal||5)+1); }
+        else if (ev.key === 'ArrowDown') { ev.preventDefault(); inp.value = clamp((parseInt(inp.value)||origVal||5)-1); }
+      });
+      inp.addEventListener('input', () => { inp.value = inp.value.replace(/[^0-9]/g,'').slice(0,2); });
+    });
+  });
+
+  // ── INLINE LEADERSHIP TRAIT click (HC only) ──
+  tbody.querySelectorAll('.trait-editable-coach').forEach(span => {
+    span.addEventListener('click', e => {
+      e.stopPropagation();
+      if (span.querySelector('select')) return;
+      const team = span.dataset.team, role = span.dataset.role;
+      const td = rosterData.coaching[team];
+      const origVal = td.leadershipTrait || '';
+      const sel = document.createElement('select');
+      sel.style.cssText = 'background:var(--bg3);border:1px solid var(--accent);color:var(--text);font-family:var(--font);font-size:10px;border-radius:3px;padding:1px 2px;outline:none;max-width:160px;';
+      sel.innerHTML = '<option value="">— unset —</option>' + LEADERSHIP_TRAITS.map(t => `<option value="${t}"${origVal===t?' selected':''}>${t}</option>`).join('');
+      span.innerHTML = ''; span.appendChild(sel); sel.focus();
+      function commitTrait() {
+        const v = sel.value;
+        if (v) td.leadershipTrait = v; else delete td.leadershipTrait;
+        markUnsaved();
+        span.innerHTML = v ? `<span class="trait-badge">${v}</span>` : `<span style="color:var(--text3);font-size:10px;">—</span>`;
+        if (selectedCoach && selectedCoach.team===team && selectedCoach.role===role) refreshCoachPanel();
+      }
+      sel.addEventListener('change', commitTrait);
+      sel.addEventListener('blur', () => setTimeout(commitTrait, 100));
+      sel.addEventListener('keydown', ev => { if(ev.key==='Escape'){ span.innerHTML = origVal ? `<span class="trait-badge">${origVal}</span>` : `<span style="color:var(--text3);font-size:10px;">—</span>`; } });
+    });
+  });
+
+  // ── INLINE DEMOGRAPHIC click (all roles) ──
+  tbody.querySelectorAll('.dem-editable-coach').forEach(span => {
+    span.addEventListener('click', e => {
+      e.stopPropagation();
+      if (span.querySelector('select')) return;
+      const team = span.dataset.team, role = span.dataset.role;
+      const c = rosterData.coaching[team][role];
+      const origVal = c.demographic || '';
+      const sel = document.createElement('select');
+      sel.style.cssText = 'background:var(--bg3);border:1px solid var(--accent);color:var(--text);font-family:var(--font);font-size:10px;border-radius:3px;padding:1px 2px;outline:none;width:80px;';
+      sel.innerHTML = '<option value="">— unset —</option>' + DEMOGRAPHICS.map(d => `<option value="${d}"${origVal===d?' selected':''}>${d}</option>`).join('');
+      span.innerHTML = ''; span.appendChild(sel); sel.focus();
+      function commitDem() {
+        const v = sel.value;
+        if (v) c.demographic = v; else delete c.demographic;
+        markUnsaved();
+        span.textContent = v || '—';
+        span.style.color = v ? 'var(--text2)' : 'var(--text3)';
+        if (selectedCoach && selectedCoach.team===team && selectedCoach.role===role) refreshCoachPanel();
+      }
+      sel.addEventListener('change', commitDem);
+      sel.addEventListener('blur', () => setTimeout(commitDem, 100));
+      sel.addEventListener('keydown', ev => { if(ev.key==='Escape'){ span.textContent = origVal || '—'; span.style.color = origVal ? 'var(--text2)' : 'var(--text3)'; } });
+    });
+  });
+}
+function makeCoachAttrChipInput(chip) {
+  const team    = chip.dataset.team;
+  const role    = chip.dataset.role;
+  const attrKey = chip.dataset.attrkey;
+  const c       = rosterData.coaching[team][role];
+  const origVal = c[attrKey] ?? null;
+
+  const inp = document.createElement('input');
+  inp.className   = 'chip-input';
+  inp.type        = 'text';
+  inp.inputMode   = 'numeric';
+  inp.value       = origVal ?? '';
+  chip.replaceWith(inp);
+  inp.focus(); inp.select();
+
+  function clamp(v) { return Math.max(40, Math.min(99, v)); }
+
+  function commit() {
+    const raw = parseInt(inp.value);
+    const v   = inp.value.trim() === '' ? null : clamp(isNaN(raw) ? (origVal ?? 60) : raw);
+    if (v === null) delete c[attrKey]; else c[attrKey] = v;
+    markUnsaved();
+    const nc = document.createElement('span');
+    nc.className = `chip ${chipClass(v)} coach-attr-chip`;
+    nc.dataset.team    = team;
+    nc.dataset.role    = role;
+    nc.dataset.attrkey = attrKey;
+    nc.title = 'Dbl-click to edit';
+    nc.textContent = v ?? '—';
+    if (inp.parentNode) inp.replaceWith(nc);
+    nc.addEventListener('dblclick', e => { e.stopPropagation(); makeCoachAttrChipInput(nc); });
+    if (selectedCoach && selectedCoach.team === team && selectedCoach.role === role) refreshCoachPanel();
+  }
+
+  function cancel() {
+    const cc = document.createElement('span');
+    cc.className = `chip ${chipClass(origVal)} coach-attr-chip`;
+    cc.dataset.team    = team;
+    cc.dataset.role    = role;
+    cc.dataset.attrkey = attrKey;
+    cc.title = 'Dbl-click to edit';
+    cc.textContent = origVal ?? '—';
+    if (inp.parentNode) inp.replaceWith(cc);
+    cc.addEventListener('dblclick', e => { e.stopPropagation(); makeCoachAttrChipInput(cc); });
+  }
+
+  inp.addEventListener('blur', commit);
+  inp.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter')      { ev.preventDefault(); inp.blur(); }
+    else if (ev.key === 'Escape'){ ev.preventDefault(); inp.removeEventListener('blur', commit); cancel(); }
+    else if (ev.key === 'ArrowUp')   { ev.preventDefault(); inp.value = clamp((parseInt(inp.value)||origVal||60)+1); }
+    else if (ev.key === 'ArrowDown') { ev.preventDefault(); inp.value = clamp((parseInt(inp.value)||origVal||60)-1); }
+  });
+  inp.addEventListener('input', () => { inp.value = inp.value.replace(/[^0-9]/g,'').slice(0,2); });
+}
+
+function makeCoachChipInput(chip) {
+  const team = chip.dataset.team, role = chip.dataset.role;
+  const c = rosterData.coaching[team][role];
+  const origVal = c.overall ?? null;
+  const inp = document.createElement('input');
+  inp.className = 'chip-input chip-ovr';
+  inp.type = 'text'; inp.inputMode = 'numeric';
+  inp.value = origVal ?? '';
+  chip.replaceWith(inp); inp.focus(); inp.select();
+
+  function clamp(v) { return Math.max(40, Math.min(99, v)); }
+  function commit() {
+    const raw = parseInt(inp.value);
+    const v = inp.value.trim() === '' ? null : clamp(isNaN(raw) ? (origVal ?? 60) : raw);
+    if (v === null) delete c.overall; else c.overall = v;
+    markUnsaved();
+    const nc = document.createElement('span');
+    nc.className = `chip ${chipClass(v)} chip-ovr`;
+    nc.dataset.team = team; nc.dataset.role = role; nc.dataset.coachfield = 'overall';
+    nc.textContent = v ?? '—';
+    if (inp.parentNode) inp.replaceWith(nc);
+    nc.addEventListener('dblclick', ee => { ee.stopPropagation(); makeCoachChipInput(nc); });
+    if (selectedCoach && selectedCoach.team === team && selectedCoach.role === role) refreshCoachPanel();
+  }
+  inp.addEventListener('blur', commit);
+  inp.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter') { ev.preventDefault(); inp.blur(); }
+    else if (ev.key === 'Escape') { ev.preventDefault(); inp.removeEventListener('blur', commit); const rc = document.createElement('span'); rc.className=`chip ${chipClass(origVal)} chip-ovr`; rc.dataset.team=team;rc.dataset.role=role;rc.dataset.coachfield='overall'; rc.textContent=origVal??'—'; if(inp.parentNode)inp.replaceWith(rc); rc.addEventListener('dblclick',ee=>{ee.stopPropagation();makeCoachChipInput(rc);}); }
+    else if (ev.key === 'ArrowUp')   { ev.preventDefault(); inp.value = clamp((parseInt(inp.value)||origVal||60)+1); }
+    else if (ev.key === 'ArrowDown') { ev.preventDefault(); inp.value = clamp((parseInt(inp.value)||origVal||60)-1); }
+  });
+  inp.addEventListener('input', () => { inp.value = inp.value.replace(/[^0-9]/g,'').slice(0,2); });
+}
+
+function makeCoachFieldInput(span) {
+  const team = span.dataset.team, role = span.dataset.role, field = span.dataset.coachfield;
+  const c = rosterData.coaching[team][role];
+  const origVal = c[field] ?? null;
+  const cfg = field === 'age' ? {min:25,max:80,maxLen:2} : {min:0,max:40,maxLen:2};
+
+  const inp = document.createElement('input');
+  inp.className = 'chip-input'; inp.style.width='38px';
+  inp.type='text'; inp.inputMode='numeric';
+  inp.value = origVal ?? '';
+  span.replaceWith(inp); inp.focus(); inp.select();
+
+  function clamp(v) { return Math.max(cfg.min, Math.min(cfg.max, v)); }
+  function commit() {
+    const raw = parseInt(inp.value);
+    const v = inp.value.trim() === '' ? null : clamp(isNaN(raw) ? (origVal ?? cfg.min) : raw);
+    if (v === null) delete c[field]; else c[field] = v;
+    markUnsaved();
+    const ns = document.createElement('span');
+    ns.className='coach-cell-editable'; ns.dataset.team=team; ns.dataset.role=role; ns.dataset.coachfield=field;
+    ns.textContent = v ?? '—'; ns.style.cursor='text'; ns.title='Double-click to edit';
+    if (inp.parentNode) inp.replaceWith(ns);
+    ns.addEventListener('dblclick', e=>{e.stopPropagation(); makeCoachFieldInput(ns);});
+    if (selectedCoach && selectedCoach.team===team && selectedCoach.role===role) refreshCoachPanel();
+  }
+  inp.addEventListener('blur', commit);
+  inp.addEventListener('keydown', ev=>{
+    if(ev.key==='Enter'){ev.preventDefault();inp.blur();}
+    else if(ev.key==='Escape'){ev.preventDefault();inp.removeEventListener('blur',commit);const ns=document.createElement('span');ns.className='coach-cell-editable';ns.dataset.team=team;ns.dataset.role=role;ns.dataset.coachfield=field;ns.textContent=origVal??'—';ns.style.cursor='text';ns.title='Double-click to edit';if(inp.parentNode)inp.replaceWith(ns);ns.addEventListener('dblclick',e=>{e.stopPropagation();makeCoachFieldInput(ns);});}
+    else if(ev.key==='ArrowUp'){ev.preventDefault();inp.value=clamp((parseInt(inp.value)||origVal||cfg.min)+1);}
+    else if(ev.key==='ArrowDown'){ev.preventDefault();inp.value=clamp((parseInt(inp.value)||origVal||cfg.min)-1);}
+  });
+  inp.addEventListener('input',()=>{inp.value=inp.value.replace(/[^0-9]/g,'').slice(0,cfg.maxLen);});
+}
+
+function makeCoachSchemeSelect(span) {
+  const team = span.dataset.team, role = span.dataset.role;
+  const c = rosterData.coaching[team][role];
+  const td = rosterData.coaching[team];
+  if (span.querySelector('select')) return;
+
+  let opts, origVal, isTeamLevel = false, schemeKey;
+  if (role === 'offensiveCoordinator') {
+    schemeKey = 'offensiveScheme'; opts = OFF_SCHEMES; origVal = c.offensiveScheme || td.offensiveScheme || '';
+  } else if (role === 'defensiveCoordinator') {
+    schemeKey = 'defensiveScheme'; opts = DEF_SCHEMES; origVal = c.defensiveScheme || td.defensiveScheme || '';
+  } else {
+    // HC shows both — open panel instead
+    selectCoach(team, role); return;
+  }
+
+  const sel = document.createElement('select');
+  sel.style.cssText = 'background:var(--bg3);border:1px solid var(--accent);color:var(--text);font-family:var(--font);font-size:10px;border-radius:3px;padding:1px 2px;outline:none;max-width:160px;';
+  sel.innerHTML = opts.map(s => `<option value="${s}"${origVal===s?' selected':''}>${s}</option>`).join('');
+  span.innerHTML = ''; span.appendChild(sel); sel.focus();
+
+  function commit() {
+    const v = sel.value;
+    c[schemeKey] = v;
+    // also update team-level for coordinator schemes
+    if (role === 'offensiveCoordinator') td.offensiveScheme = v;
+    if (role === 'defensiveCoordinator') td.defensiveScheme = v;
+    markUnsaved();
+    const cls = coachSchemeCls({role});
+    span.innerHTML = `<span class="scheme-badge ${cls}" style="cursor:pointer" data-team="${team}" data-role="${role}" title="Click to change">${v}</span>`;
+    span.querySelector('.scheme-badge').addEventListener('click', e=>{e.stopPropagation();makeCoachSchemeSelect(span.querySelector('.scheme-badge'));});
+    if (selectedCoach && selectedCoach.team===team && selectedCoach.role===role) refreshCoachPanel();
+  }
+  sel.addEventListener('change', commit);
+  sel.addEventListener('blur', ()=>setTimeout(commit, 100));
+  sel.addEventListener('keydown', ev=>{ if(ev.key==='Escape'){span.innerHTML=`<span class="scheme-badge ${coachSchemeCls({role})}" style="cursor:pointer" data-team="${team}" data-role="${role}" title="Click to change">${origVal||'—'}</span>`;} });
+}
+
+// ─────────────────────────────────────────────
+//  COACHING PANEL
+// ─────────────────────────────────────────────
+function selectCoach(team, role) {
+  selectedCoach = { team, role };
+  pendingCoachEdits = {};
+
+  // Highlight row
+  document.querySelectorAll('#coaching-tbody tr').forEach(r => {
+    r.classList.toggle('selected', r.dataset.team===team && r.dataset.role===role);
+  });
+
+  showCoachPanel(true);
+  refreshCoachPanel();
+}
+
+function refreshCoachPanel() {
+  if (!selectedCoach) return;
+  const { team, role } = selectedCoach;
+  const td = rosterData.coaching[team];
+  const c  = td[role];
+  if (!c) return;
+
+  const roleLbl = coachRoleLabel(role);
+  document.getElementById('coaching-panel-name').textContent = `${c.firstName} ${c.lastName}`;
+  document.getElementById('coaching-panel-meta').textContent = `${team} · ${roleLbl} · OVR ${c.overall ?? '—'}`;
+
+  let html = '';
+
+  // ── IDENTITY ──
+  html += `<div class="panel-section"><div class="panel-section-title"><span class="section-icon">👤</span> Identity</div>`;
+  [['firstName','First Name'],['lastName','Last Name']].forEach(([k,lbl]) => {
+    html += `<div class="panel-field"><label>${lbl}</label><input type="text" data-ckey="${k}" value="${(c[k]??'').replace(/"/g,'&quot;')}"></div>`;
+  });
+  html += `<div class="panel-field"><label>Demographic</label><select data-ckey="demographic">
+    <option value="">— unset —</option>
+    ${DEMOGRAPHICS.map(d=>`<option${c.demographic===d?' selected':''}>${d}</option>`).join('')}
+  </select></div>`;
+  html += '</div>';
+
+  // ── VITALS & DEV TRAIT ──
+  html += `<div class="panel-section"><div class="panel-section-title"><span class="section-icon">📊</span> Vitals</div>`;
+  html += `<div class="panel-field"><label>Overall</label><input type="number" data-ckey="overall" min="40" max="99" value="${c.overall??''}"></div>`;
+  html += `<div class="panel-field"><label>Dev Trait</label><select data-ckey="devTrait">
+    <option value="">— auto —</option>
+    ${COACH_DEV_TRAITS.map(d=>`<option value="${d}"${c.devTrait===d?' selected':''}>${d}</option>`).join('')}
+  </select></div>`;
+  html += `<div class="panel-field"><label>Age</label><input type="number" data-ckey="age" min="25" max="80" value="${c.age??''}"></div>`;
+  html += `<div class="panel-field"><label>Experience (yrs)</label><input type="number" data-ckey="experience" min="0" max="40" value="${c.experience??''}"></div>`;
+  html += '</div>';
+
+  // ── APPEARANCE ──
+  html += `<div class="panel-section"><div class="panel-section-title"><span class="section-icon">👔</span> Appearance</div>`;
+  html += `<div class="panel-field"><label>Clothing Type</label><input type="number" data-ckey="clothingType" min="0" max="20" value="${c.clothingType??''}" placeholder="—"></div>`;
+  html += `<div class="panel-field"><label>Clothing Color ID</label><input type="number" data-ckey="clothingColorId" min="0" max="100" value="${c.clothingColorId??''}" placeholder="—"></div>`;
+  html += `<div class="panel-field"><label>Wearing Hat</label><select data-ckey="wearingHat">
+    <option value="">— unset —</option>
+    <option value="true"${c.wearingHat===true?' selected':''}>Yes</option>
+    <option value="false"${c.wearingHat===false?' selected':''}>No</option>
+  </select></div>`;
+  html += `<div style="font-size:9px;color:var(--text3);margin-top:2px;font-style:italic;">clothingType: outfit index. clothingColorId: color variant (0–100+).</div>`;
+  html += '</div>';
+
+  // ── SCHEMES ──
+  html += `<div class="panel-section"><div class="panel-section-title"><span class="section-icon">🎯</span> Scheme</div>`;
+  if (role === 'headCoach') {
+    html += `<div class="coach-scheme-row"><label>Off. Scheme</label><select data-tdkey="offensiveScheme">
+      ${OFF_SCHEMES.map(s=>`<option${td.offensiveScheme===s?' selected':''}>${s}</option>`).join('')}
+    </select></div>`;
+    html += `<div class="coach-scheme-row"><label>Def. Scheme</label><select data-tdkey="defensiveScheme">
+      ${DEF_SCHEMES.map(s=>`<option${td.defensiveScheme===s?' selected':''}>${s}</option>`).join('')}
+    </select></div>`;
+    html += `<div class="coach-scheme-row"><label>Leadership Trait</label><select data-tdkey="leadershipTrait">
+      <option value="">— unset —</option>
+      ${LEADERSHIP_TRAITS.map(t=>`<option${td.leadershipTrait===t?' selected':''}>${t}</option>`).join('')}
+    </select></div>`;
+  } else if (role === 'offensiveCoordinator') {
+    html += `<div class="coach-scheme-row"><label>Off. Scheme</label><select data-ckey="offensiveScheme">
+      ${OFF_SCHEMES.map(s=>`<option${(c.offensiveScheme||td.offensiveScheme)===s?' selected':''}>${s}</option>`).join('')}
+    </select></div>`;
+  } else if (role === 'defensiveCoordinator') {
+    html += `<div class="coach-scheme-row"><label>Def. Scheme</label><select data-ckey="defensiveScheme">
+      ${DEF_SCHEMES.map(s=>`<option${(c.defensiveScheme||td.defensiveScheme)===s?' selected':''}>${s}</option>`).join('')}
+    </select></div>`;
+  }
+  html += '</div>';
+
+  // ── TEAM PHILOSOPHY (HC only) ──
+  if (role === 'headCoach') {
+    const agg = td.aggressiveness ?? 5;
+    const rb  = td.rbWorkload ?? 5;
+    html += `<div class="panel-section"><div class="panel-section-title"><span class="section-icon">⚙️</span> Team Philosophy</div>`;
+    html += `<div class="meter-slider-row">
+      <label>Aggressiveness</label>
+      <input type="range" min="1" max="10" value="${agg}" data-tdkey="aggressiveness" oninput="document.getElementById('agg-val').textContent=this.value;pendingCoachEdits['td.aggressiveness']=parseInt(this.value);markUnsaved();">
+      <span class="meter-slider-val" id="agg-val">${agg}</span>
+    </div>`;
+    html += `<div class="meter-slider-row">
+      <label>RB Workload</label>
+      <input type="range" min="1" max="10" value="${rb}" data-tdkey="rbWorkload" oninput="document.getElementById('rb-val').textContent=this.value;pendingCoachEdits['td.rbWorkload']=parseInt(this.value);markUnsaved();">
+      <span class="meter-slider-val" id="rb-val">${rb}</span>
+    </div>`;
+    html += `<div style="font-size:9px;color:var(--text3);margin-top:4px;font-style:italic;">Aggressiveness: 4th-down calls, blitz rate, fake punts. RB Workload: touches per game weight.</div>`;
+    html += '</div>';
+  }
+
+  // ── COACHING ATTRIBUTES (role-specific) ──
+  const coachAttrs = COACH_ATTRS[role];
+  if (coachAttrs) {
+    const roleLabel = role === 'headCoach' ? 'HC' : role === 'offensiveCoordinator' ? 'OC' : 'DC';
+    html += `<div class="panel-section"><div class="panel-section-title"><span class="section-icon">⚡</span> ${roleLabel} Attributes</div>`;
+    html += `<div class="coach-attr-note">Range 40–99. Blank = auto-generated from OVR.</div>`;
+    html += `<div class="coach-attr-grid">`;
+    coachAttrs.forEach(a => {
+      html += `<div class="coach-attr-item">
+        <label title="${a.tip}">${a.label}</label>
+        <input type="number" data-coachattr="${a.key}" value="${c[a.key]??''}" min="40" max="99" placeholder="—">
+      </div>`;
+    });
+    html += '</div></div>';
+  }
+
+  document.getElementById('coaching-panel-body').innerHTML = html;
+
+  // Attach change listeners — coach-level fields
+  document.querySelectorAll('#coaching-panel-body [data-ckey]').forEach(el => {
+    const handler = () => {
+      const key = el.dataset.ckey;
+      let val;
+      if (el.type === 'number')        val = el.value === '' ? null : parseFloat(el.value);
+      else if (el.tagName === 'SELECT' && (key === 'wearingHat')) val = el.value === '' ? null : (el.value === 'true');
+      else                             val = el.value;
+      pendingCoachEdits['c.' + key] = val;
+      markUnsaved();
+    };
+    el.addEventListener('change', handler);
+    el.addEventListener('input',  handler);
+  });
+
+  // Team-level fields (HC scheme/philosophy selects — sliders use inline oninput)
+  document.querySelectorAll('#coaching-panel-body [data-tdkey]').forEach(el => {
+    if (el.type === 'range') return;
+    el.addEventListener('change', () => {
+      pendingCoachEdits['td.' + el.dataset.tdkey] = el.value;
+      markUnsaved();
+    });
+  });
+
+  // Coaching attribute inputs
+  document.querySelectorAll('#coaching-panel-body [data-coachattr]').forEach(el => {
+    el.addEventListener('change', () => {
+      const key = el.dataset.coachattr;
+      const val = el.value === '' ? null : parseInt(el.value);
+      pendingCoachEdits['ca.' + key] = val;
+      markUnsaved();
+    });
+  });
+}
+
+function saveCoachPanel() {
+  if (!selectedCoach) return;
+  const { team, role } = selectedCoach;
+  const td = rosterData.coaching[team];
+  const c  = td[role];
+
+  for (const [fullKey, val] of Object.entries(pendingCoachEdits)) {
+    if (fullKey.startsWith('c.')) {
+      const key = fullKey.slice(2);
+      if (val === null || val === '') delete c[key]; else c[key] = val;
+      // Mirror scheme changes up to teamData
+      if (key === 'offensiveScheme') td.offensiveScheme = val;
+      if (key === 'defensiveScheme') td.defensiveScheme = val;
+    } else if (fullKey.startsWith('td.')) {
+      const key = fullKey.slice(3);
+      const numVal = (key === 'aggressiveness' || key === 'rbWorkload') ? parseInt(val) : val;
+      if (val === '' || val === null) delete td[key]; else td[key] = numVal;
+    } else if (fullKey.startsWith('ca.')) {
+      // Coaching attributes — stored directly on the coach object
+      const key = fullKey.slice(3);
+      if (val === null) delete c[key]; else c[key] = val;
+    }
+  }
+
+  pendingCoachEdits = {};
+  markUnsaved();
+  refreshCoachPanel();
+  renderCoachingTable();
+  toast('Coach saved');
+}
+
+function discardCoachChanges() {
+  pendingCoachEdits = {};
+  refreshCoachPanel();
+  toast('Changes discarded');
+}
+
+function onCoachSearchInput() {
+  const val = document.getElementById('coach-search').value;
+  document.getElementById('coach-search-clear').style.display = val ? 'block' : 'none';
+  applyCoachFilters();
+}
+
+function clearCoachSearch() {
+  document.getElementById('coach-search').value = '';
+  document.getElementById('coach-search-clear').style.display = 'none';
+  applyCoachFilters();
+  document.getElementById('coach-search').focus();
+}
+
+function toast(msg, isError = false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (isError ? ' error' : '');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { el.className = ''; }, 2500);
+}
+</script>
+</body>
+</html>
