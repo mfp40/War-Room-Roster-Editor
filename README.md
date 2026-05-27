@@ -22,7 +22,7 @@ That's it. No Node, no Python, no build step.
 ## Features
 
 ### Spreadsheet Grid
-- **All 1,700+ players** visible in a scrollable, sortable table
+- **All players** visible in a scrollable, sortable table
 - **Click any column header** to sort ascending or descending
 - **Color-coded attribute chips** — elite (yellow-green), good (blue), average (amber), poor (red) — applied consistently across OVR and all attributes
 
