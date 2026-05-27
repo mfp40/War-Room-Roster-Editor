@@ -10,7 +10,7 @@ A fast, dark-themed spreadsheet editor for War Room Football roster JSON files. 
 
 ## Quick Start
 
-1. Download `roster_editor_coaching.html`
+1. Download `war_room_roster_editor.html`
 2. Open it in any modern browser (Chrome, Edge, Firefox, Safari)
 3. Click **⬆ Import JSON** and load your roster file
 4. Edit, save, and export
